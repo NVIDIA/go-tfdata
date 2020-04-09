@@ -6,8 +6,6 @@
 package tfdata
 
 import (
-	"fmt"
-
 	"github.com/NVIDIA/go-tfdata/proto"
 	protobuf "google.golang.org/protobuf/proto"
 )
@@ -31,27 +29,22 @@ func Marshal(e *TFExample) ([]byte, error) {
 	return protobuf.Marshal(e)
 }
 
-func Unmarshal(p []byte, e *TFExample, schemaExample ...*TFExample) (err error) {
-	if len(schemaExample) == 0 {
-		return protobuf.Unmarshal(p, e)
-	}
+func Unmarshal(p []byte, e *TFExample) (err error) {
+	return protobuf.Unmarshal(p, e)
 
-	schema := schemaExample[0]
-	msg := schema.ProtoReflect().New().Interface()
-	//descriptorProto := protodesc.ToDescriptorProto(schema.ProtoReflect().Descriptor())
-	//err = protobuf.Unmarshal(p, descriptorProto)
+	// FIXME: think if we need something like code below for custom message descriptors
+	//schema := schemaExample[0]
+	//msg := schema.ProtoReflect().New().Interface()
+	//err = protobuf.Unmarshal(p, msg)
+	//if err != nil {
+	//	return err
+	//}
 	//
-	//msg := dynamicpb.NewMessage(schema.ProtoReflect().Descriptor())
-	err = protobuf.Unmarshal(p, msg)
-	if err != nil {
-		return err
-	}
-
-	if ex, ok := msg.(*TFExample); ok {
-		*e = *ex
-		return nil
-	}
-	return fmt.Errorf("couldn't parse message into TFExample")
+	//if ex, ok := msg.(*TFExample); ok {
+	//	*e = *ex
+	//	return nil
+	//}
+	//return fmt.Errorf("couldn't parse message into TFExample")
 }
 
 func (e *TFExample) AddInt64List(name string, ints []int64) {

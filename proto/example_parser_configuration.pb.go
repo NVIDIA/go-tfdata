@@ -7,6 +7,7 @@
 //// source: tensorflow/core/example/example_parser_configuration.proto
 //
 package proto
+
 //
 //import (
 //	reflect "reflect"

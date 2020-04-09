@@ -15,7 +15,6 @@ import (
 type (
 	TFRecordWriterInterface interface {
 		io.Writer
-		WriteString(s string) (n int, err error)
 		WriteExample(example *TFExample) (n int, err error)
 	}
 
@@ -27,7 +26,6 @@ type (
 	TFRecordWriter struct {
 		w io.Writer
 		c checksum.Checksummer
-		// WriteExample(tf.Example) (n int, err error)
 	}
 
 	TFRecordReader struct {
@@ -80,7 +78,7 @@ func NewTFRecordReader(r io.Reader) *TFRecordReader {
 	return &TFRecordReader{r: r, c: checksum.NewCRCChecksummer()}
 }
 
-func (r *TFRecordReader) ReadNext(schema ...*TFExample) (*TFExample, error) {
+func (r *TFRecordReader) ReadNext() (*TFExample, error) {
 	payloadLengthHeader := make([]byte, 12)
 	if _, err := io.ReadFull(r.r, payloadLengthHeader); err != nil {
 		return nil, err
@@ -108,15 +106,15 @@ func (r *TFRecordReader) ReadNext(schema ...*TFExample) (*TFExample, error) {
 	}
 
 	ex := &TFExample{}
-	err := Unmarshal(payload, ex, schema...)
+	err := Unmarshal(payload, ex)
 	return ex, err
 }
 
-func (r *TFRecordReader) Read(schema ...*TFExample) ([]*TFExample, error) {
+func (r *TFRecordReader) Read() ([]*TFExample, error) {
 	result := make([]*TFExample, 0, 20)
 
 	for {
-		ex, err := r.ReadNext(schema...)
+		ex, err := r.ReadNext()
 		if err == nil {
 			result = append(result, ex)
 		} else if err == io.EOF {

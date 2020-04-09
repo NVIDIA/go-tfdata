@@ -20,9 +20,9 @@ func writeExamples(w io.Writer, examples []*tfdata.TFExample) error {
 	return nil
 }
 
-func readExamples(r io.Reader, schema *tfdata.TFExample) ([]*tfdata.TFExample, error) {
+func readExamples(r io.Reader) ([]*tfdata.TFExample, error) {
 	tfReader := tfdata.NewTFRecordReader(r)
-	return tfReader.Read(schema)
+	return tfReader.Read()
 }
 
 func prepareExamples(cnt int) []*tfdata.TFExample {
@@ -40,14 +40,15 @@ func prepareExamples(cnt int) []*tfdata.TFExample {
 
 func TestTfRecordWriterReader(t *testing.T) {
 	const (
-		cnt = 2
+		cnt  = 100
 		path = "/tmp/testtfrecordwriterreader"
-		)
+	)
 	f, err := os.Create(path)
 	if err != nil {
 		t.Error(err)
 		return
 	}
+	defer os.Remove(path)
 
 	tfExamples := prepareExamples(cnt)
 	err = writeExamples(f, tfExamples)
@@ -64,7 +65,7 @@ func TestTfRecordWriterReader(t *testing.T) {
 	}
 	defer f.Close()
 
-	readTfExamples, err := readExamples(f, tfExamples[0])
+	readTfExamples, err := readExamples(f)
 	if err != nil {
 		t.Error(err)
 		return
