@@ -3,7 +3,7 @@ For now, just a bunch of things to remember as of April 2020:
 - .proto files to generate golang source code for TensorFlow tf.Example are here:
    - https://github.com/tensorflow/tensorflow/tree/master/tensorflow/core/example
    - https://github.com/tensorflow/tensorflow/tree/master/tensorflow/core/features
-   
+
 - We want to (and we did) jump in on new Go API for Protocol Buffers: https://blog.golang.org/protobuf-apiv2
 - If we want v2 we can't just `go get -u github.com/golang/protobuf/protoc-gen-go` as it's v1  
 - To get v2 we have to do it from source at the moment `https://github.com/protocolbuffers/protobuf-go`.
