@@ -15,7 +15,7 @@ where `src` is path to TensorFlow repo cloned from github
 Reasons to go with v2 is that v1 is going to be deprecated sooner or later and mostly that it supports messages reflections
 meaning that it's easier to unmarshal messages based on golang objects
 
-
+Possibly useful links on how to operate on Descriptors 
 DescriptorProto - defines dynamic schema of a message https://pkg.go.dev/google.golang.org/protobuf/types/descriptorpb?tab=doc#DescriptorProto
 ToDescriptorProto - https://pkg.go.dev/google.golang.org/protobuf/reflect/protodesc?tab=doc#ToDescriptorProto
 https://pkg.go.dev/google.golang.org/protobuf/types/dynamicpb?tab=doc#NewMessage

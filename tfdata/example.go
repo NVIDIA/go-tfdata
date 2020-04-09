@@ -1,13 +1,12 @@
 //// Package tfdata provides interface to interact with TFRecord files and tf.Examples
-///*
-// * Copyright (c) 2020, NVIDIA CORPORATION. All rights reserved.
-// */
 //
+// Copyright (c) 2020, NVIDIA CORPORATION. All rights reserved.
+//
+
 package tfdata
 
 import (
 	"github.com/NVIDIA/go-tfdata/proto"
-	protobuf "google.golang.org/protobuf/proto"
 )
 
 type (
@@ -23,28 +22,6 @@ func NewTFExample() *TFExample {
 
 	//ex.ProtoReflect().Descriptor()
 	return &TFExample{ex}
-}
-
-func Marshal(e *TFExample) ([]byte, error) {
-	return protobuf.Marshal(e)
-}
-
-func Unmarshal(p []byte, e *TFExample) (err error) {
-	return protobuf.Unmarshal(p, e)
-
-	// FIXME: think if we need something like code below for custom message descriptors
-	//schema := schemaExample[0]
-	//msg := schema.ProtoReflect().New().Interface()
-	//err = protobuf.Unmarshal(p, msg)
-	//if err != nil {
-	//	return err
-	//}
-	//
-	//if ex, ok := msg.(*TFExample); ok {
-	//	*e = *ex
-	//	return nil
-	//}
-	//return fmt.Errorf("couldn't parse message into TFExample")
 }
 
 func (e *TFExample) AddInt64List(name string, ints []int64) {

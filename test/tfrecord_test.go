@@ -1,6 +1,14 @@
+//// Package test contains tests of tfdata package
+//
+// Copyright (c) 2020, NVIDIA CORPORATION. All rights reserved.
+//
+
 package test
 
 import (
+	"bytes"
+	"github.com/NVIDIA/go-tfdata/test/tassert"
+	"image/jpeg"
 	"io"
 	"os"
 	"testing"
@@ -22,7 +30,7 @@ func writeExamples(w io.Writer, examples []*tfdata.TFExample) error {
 
 func readExamples(r io.Reader) ([]*tfdata.TFExample, error) {
 	tfReader := tfdata.NewTFRecordReader(r)
-	return tfReader.Read()
+	return tfReader.ReadExamples()
 }
 
 func prepareExamples(cnt int) []*tfdata.TFExample {
@@ -36,6 +44,47 @@ func prepareExamples(cnt int) []*tfdata.TFExample {
 	}
 
 	return result
+}
+
+func TestSmokeTfSingleRecordReader(t *testing.T) {
+	const path = "data/tf-train-single.record"
+
+	f, err := os.Open(path)
+	tassert.CheckFatal(t, err)
+	defer f.Close()
+
+	readTfExamples, err := readExamples(f)
+	tassert.CheckError(t, err)
+
+	if len(readTfExamples) != 1 {
+		t.Errorf("expected to read one tf.Examples, got %d", len(readTfExamples))
+	}
+}
+
+func TestTfMediumRecordReader(t *testing.T) {
+	const path = "data/tf-train-medium.record"
+
+	f, err := os.Open(path)
+	tassert.CheckFatal(t, err)
+	defer f.Close()
+
+	readTfExamples, err := readExamples(f)
+	tassert.CheckError(t, err)
+	tassert.Errorf(t, len(readTfExamples) == 7, "expected to read 7 tf.Examples, got %d", len(readTfExamples))
+
+	for _, example := range readTfExamples {
+		s := ""
+		for k := range example.Features.Feature {
+			s += k + " "
+		}
+
+		imgFeature := example.Features.Feature["image_raw"]
+		value := imgFeature.GetBytesList().GetValue()
+		tassert.Errorf(t, len(value) == 1, "expected one element list, got %d elements", len(value))
+		img, err := jpeg.Decode(bytes.NewBuffer(value[0]))
+		tassert.CheckFatal(t, err)
+		tassert.Errorf(t, img.Bounds().Dx() == img.Bounds().Dy() || img.Bounds().Dx() != 224, "unexpected dimensions of an image; expected 224,224")
+	}
 }
 
 func TestTfRecordWriterReader(t *testing.T) {
@@ -52,34 +101,19 @@ func TestTfRecordWriterReader(t *testing.T) {
 
 	tfExamples := prepareExamples(cnt)
 	err = writeExamples(f, tfExamples)
-	if err != nil {
-		t.Error(err)
-		return
-	}
+	tassert.CheckError(t, err)
 
 	f.Close()
 	f, err = os.Open(path)
-	if err != nil {
-		t.Error(err)
-		return
-	}
+	tassert.CheckFatal(t, err)
 	defer f.Close()
 
 	readTfExamples, err := readExamples(f)
-	if err != nil {
-		t.Error(err)
-		return
-	}
+	tassert.CheckError(t, err)
 
-	if len(readTfExamples) != cnt {
-		t.Errorf("expected to read %d examples, but got %d", cnt, len(readTfExamples))
-		return
-	}
+	tassert.Errorf(t, len(readTfExamples) == cnt, "expected to read %d examples, but got %d", cnt, len(readTfExamples))
 
 	for i := range tfExamples {
-		if !protobuf.Equal(tfExamples[i], readTfExamples[i]) {
-			t.Errorf("example %s doesn't equal example %s", tfExamples[i].String(), readTfExamples[i].String())
-			return
-		}
+		tassert.Errorf(t, protobuf.Equal(tfExamples[i], readTfExamples[i]), "example %s doesn't equal example %s", tfExamples[i].String(), readTfExamples[i].String())
 	}
 }

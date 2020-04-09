@@ -1,12 +1,14 @@
 //// Package tfdata provides interface to interact with TFRecord files and tf.Examples
-///*
-// * Copyright (c) 2020, NVIDIA CORPORATION. All rights reserved.
-// */
 //
+// Copyright (c) 2020, NVIDIA CORPORATION. All rights reserved.
+//
+
 package tfdata
 
 import (
 	"encoding/binary"
+	protobuf "google.golang.org/protobuf/proto"
+	"google.golang.org/protobuf/reflect/protoreflect"
 	"io"
 
 	"github.com/NVIDIA/go-tfdata/tfdata/internal/checksum"
@@ -15,12 +17,15 @@ import (
 type (
 	TFRecordWriterInterface interface {
 		io.Writer
-		WriteExample(example *TFExample) (n int, err error)
+		WriteMessage(protobuf.Message) (n int, err error)
+		WriteExample(*TFExample) (n int, err error)
 	}
 
 	TFRecordReaderInterface interface {
-		Read() ([]*TFExample, error)
-		ReadNext() (*TFExample, error)
+		ReadNext(protobuf.Message) error
+		ReadNextExample() (*TFExample, error)
+
+		ReadExamples() ([]*TFExample, error)
 	}
 
 	TFRecordWriter struct {
@@ -66,7 +71,11 @@ func (w *TFRecordWriter) Write(p []byte) (n int, err error) {
 }
 
 func (w *TFRecordWriter) WriteExample(example *TFExample) (n int, err error) {
-	p, err := Marshal(example)
+	return w.WriteMessage(example)
+}
+
+func (w *TFRecordWriter) WriteMessage(message protoreflect.ProtoMessage) (n int, err error) {
+	p, err := protobuf.Marshal(message)
 	if err != nil {
 		return 0, err
 	}
@@ -78,43 +87,48 @@ func NewTFRecordReader(r io.Reader) *TFRecordReader {
 	return &TFRecordReader{r: r, c: checksum.NewCRCChecksummer()}
 }
 
-func (r *TFRecordReader) ReadNext() (*TFExample, error) {
+func (r *TFRecordReader) ReadNextExample() (*TFExample, error) {
+	ex := &TFExample{}
+	return ex, r.ReadNext(ex)
+}
+
+
+func (r *TFRecordReader) ReadNext(message protobuf.Message) error {
 	payloadLengthHeader := make([]byte, 12)
 	if _, err := io.ReadFull(r.r, payloadLengthHeader); err != nil {
-		return nil, err
+		return err
 	}
 
 	lengthChecksum := binary.LittleEndian.Uint32(payloadLengthHeader[8:12])
 	if err := r.c.Verify(payloadLengthHeader[:8], lengthChecksum); err != nil {
-		return nil, err
+		return err
 	}
 
 	payloadLength := binary.LittleEndian.Uint64(payloadLengthHeader[0:8])
 	payload := make([]byte, payloadLength)
 	if _, err := io.ReadFull(r.r, payload); err != nil {
-		return nil, err
+		return err
 	}
 
 	payloadChecksumBytes := make([]byte, 4)
 	if _, err := io.ReadFull(r.r, payloadChecksumBytes); err != nil {
-		return nil, err
+		return err
 	}
 
 	payloadChecksum := binary.LittleEndian.Uint32(payloadChecksumBytes[0:4])
 	if err := r.c.Verify(payload, payloadChecksum); err != nil {
-		return nil, err
+		return err
 	}
 
-	ex := &TFExample{}
-	err := Unmarshal(payload, ex)
-	return ex, err
+	// TODO: think how we should unmarshal message based on given MessageDescriptor
+	return protobuf.Unmarshal(payload, message)
 }
 
-func (r *TFRecordReader) Read() ([]*TFExample, error) {
+func (r *TFRecordReader) ReadExamples() ([]*TFExample, error) {
 	result := make([]*TFExample, 0, 20)
 
 	for {
-		ex, err := r.ReadNext()
+		ex, err := r.ReadNextExample()
 		if err == nil {
 			result = append(result, ex)
 		} else if err == io.EOF {

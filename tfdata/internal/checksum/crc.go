@@ -1,3 +1,8 @@
+//// Package internal provides internal, not available in public API functions and structures used by tfdata package
+//
+// Copyright (c) 2020, NVIDIA CORPORATION. All rights reserved.
+//
+
 package checksum
 
 import (
