@@ -15,7 +15,7 @@ import (
 	tarp "github.com/tmbdev/tarp/dpipes"
 )
 
-func TFExampleSampleTransform(f func (ex *tfdata.TFExample) tarp.Sample) func(tfdata.TFExamplePipe, tarp.Pipe) {
+func TFExampleSampleTransform(f func(ex *tfdata.TFExample) tarp.Sample) func(tfdata.TFExamplePipe, tarp.Pipe) {
 	return func(inch tfdata.TFExamplePipe, out tarp.Pipe) {
 		for ex := range inch {
 			out <- f(ex)
@@ -24,7 +24,7 @@ func TFExampleSampleTransform(f func (ex *tfdata.TFExample) tarp.Sample) func(tf
 	}
 }
 
-func SampleToTFExampleTransform(f func (sample tarp.Sample) *tfdata.TFExample) func(tarp.Pipe, tfdata.TFExamplePipe) {
+func SampleToTFExampleTransform(f func(sample tarp.Sample) *tfdata.TFExample) func(tarp.Pipe, tfdata.TFExamplePipe) {
 	return func(inch tarp.Pipe, out tfdata.TFExamplePipe) {
 		for sample := range inch {
 			out <- f(sample)
@@ -53,6 +53,9 @@ func SampleToTFExample(sample tarp.Sample) *tfdata.TFExample {
 	return ex
 }
 
+// Create github.com/tmbdev/tarp/dpipes Pipeline
+// Read tf.Record to stream of examples, transform examples to tarp.Samples, shuffle, transform back to TFExamples,
+// and write to TFRecord
 func TestPipeline(t *testing.T) {
 	const (
 		sourcePath  = "data/tf-train-medium.record"
@@ -76,6 +79,8 @@ func TestPipeline(t *testing.T) {
 	sink := func(pipe tarp.Pipe) {
 		exCh := make(chan *tfdata.TFExample, 100)
 		go SampleToTFExampleTransform(SampleToTFExample)(pipe, exCh)
+		// Do not `go` as we what tarp.Processing to finish when TFRecordSink finishes.
+		// Only then, after everything is done, start checking the contents of destPath.
 		tfdata.TFRecordSink(sinkFd)(exCh)
 	}
 

@@ -93,6 +93,7 @@ func prepareExamples(cnt int) []*tfdata.TFExample {
 	return result
 }
 
+// Read TFRecord with single tf.Example
 func TestSmokeTfSingleRecordReader(t *testing.T) {
 	const path = "data/tf-train-single.record"
 
@@ -108,6 +109,7 @@ func TestSmokeTfSingleRecordReader(t *testing.T) {
 	}
 }
 
+// Read TFRecord with multiple tf.Examples
 func TestTfMediumRecordReader(t *testing.T) {
 	const path = "data/tf-train-medium.record"
 
@@ -129,6 +131,7 @@ func TestTfMediumRecordReader(t *testing.T) {
 	}
 }
 
+// Create TFRecord and then read it back to memory
 func TestTfRecordWriterReader(t *testing.T) {
 	const (
 		cnt  = 100
