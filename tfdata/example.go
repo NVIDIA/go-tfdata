@@ -10,6 +10,8 @@ import (
 )
 
 type (
+	TFExamplePipe chan *TFExample
+
 	TFExample struct {
 		proto.Example
 	}
@@ -20,7 +22,6 @@ func NewTFExample() *TFExample {
 		Features: &proto.Features{Feature: make(map[string]*proto.Feature)},
 	}
 
-	//ex.ProtoReflect().Descriptor()
 	return &TFExample{ex}
 }
 

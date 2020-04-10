@@ -7,12 +7,13 @@ package test
 
 import (
 	"bytes"
-	"github.com/NVIDIA/go-tfdata/test/tassert"
 	"image/jpeg"
 	"io"
 	"os"
+	"sync"
 	"testing"
 
+	"github.com/NVIDIA/go-tfdata/test/tassert"
 	"github.com/NVIDIA/go-tfdata/tfdata"
 	protobuf "google.golang.org/protobuf/proto"
 )
@@ -28,9 +29,55 @@ func writeExamples(w io.Writer, examples []*tfdata.TFExample) error {
 	return nil
 }
 
+func writeExamplesCh(w io.Writer, examples []*tfdata.TFExample) error {
+	var (
+		tfWriter = tfdata.NewTFRecordWriter(w)
+		ch       = make(chan *tfdata.TFExample, 5)
+		wg       = sync.WaitGroup{}
+		err      error
+	)
+
+	wg.Add(1)
+	go func() {
+		err = tfWriter.WriteExamples(ch)
+		wg.Done()
+	}()
+
+	for _, example := range examples {
+		ch <- example
+	}
+	close(ch)
+
+	wg.Wait()
+	return err
+}
+
 func readExamples(r io.Reader) ([]*tfdata.TFExample, error) {
 	tfReader := tfdata.NewTFRecordReader(r)
-	return tfReader.ReadExamples()
+	return tfReader.ReadAllExamples()
+}
+
+func readExamplesCh(r io.Reader) ([]*tfdata.TFExample, error) {
+	var (
+		err      error
+		tfReader = tfdata.NewTFRecordReader(r)
+		wg       = sync.WaitGroup{}
+		result   = make([]*tfdata.TFExample, 0, 20)
+		ch       = make(chan *tfdata.TFExample, 20)
+	)
+
+	wg.Add(1)
+	go func() {
+		err = tfReader.ReadExamples(ch)
+		wg.Done()
+	}()
+
+	for ex := range ch {
+		result = append(result, ex)
+	}
+
+	wg.Wait()
+	return result, err
 }
 
 func prepareExamples(cnt int) []*tfdata.TFExample {
@@ -73,11 +120,6 @@ func TestTfMediumRecordReader(t *testing.T) {
 	tassert.Errorf(t, len(readTfExamples) == 7, "expected to read 7 tf.Examples, got %d", len(readTfExamples))
 
 	for _, example := range readTfExamples {
-		s := ""
-		for k := range example.Features.Feature {
-			s += k + " "
-		}
-
 		imgFeature := example.Features.Feature["image_raw"]
 		value := imgFeature.GetBytesList().GetValue()
 		tassert.Errorf(t, len(value) == 1, "expected one element list, got %d elements", len(value))
@@ -92,28 +134,43 @@ func TestTfRecordWriterReader(t *testing.T) {
 		cnt  = 100
 		path = "/tmp/testtfrecordwriterreader"
 	)
-	f, err := os.Create(path)
-	if err != nil {
-		t.Error(err)
-		return
-	}
-	defer os.Remove(path)
+	var (
+		writers = []func(w io.Writer, examples []*tfdata.TFExample) error{writeExamples, writeExamplesCh}
+		readers = []func(r io.Reader) ([]*tfdata.TFExample, error){readExamples, readExamplesCh}
+	)
 
-	tfExamples := prepareExamples(cnt)
-	err = writeExamples(f, tfExamples)
-	tassert.CheckError(t, err)
+	defer func() {
+		if _, err := os.Stat(path); err == nil {
+			os.Remove(path)
+		}
+	}()
 
-	f.Close()
-	f, err = os.Open(path)
-	tassert.CheckFatal(t, err)
-	defer f.Close()
+	for _, write := range writers {
+		for _, read := range readers {
+			f, err := os.Create(path)
+			if err != nil {
+				t.Error(err)
+				return
+			}
 
-	readTfExamples, err := readExamples(f)
-	tassert.CheckError(t, err)
+			tfExamples := prepareExamples(cnt)
+			err = write(f, tfExamples)
+			tassert.CheckError(t, err)
 
-	tassert.Errorf(t, len(readTfExamples) == cnt, "expected to read %d examples, but got %d", cnt, len(readTfExamples))
+			f.Close()
+			f, err = os.Open(path)
+			tassert.CheckFatal(t, err)
 
-	for i := range tfExamples {
-		tassert.Errorf(t, protobuf.Equal(tfExamples[i], readTfExamples[i]), "example %s doesn't equal example %s", tfExamples[i].String(), readTfExamples[i].String())
+			readTfExamples, err := read(f)
+			tassert.CheckError(t, err)
+
+			tassert.Errorf(t, len(readTfExamples) == cnt, "expected to read %d examples, but got %d", cnt, len(readTfExamples))
+
+			for i := range tfExamples {
+				tassert.Errorf(t, protobuf.Equal(tfExamples[i], readTfExamples[i]), "example %s doesn't equal example %s", tfExamples[i].String(), readTfExamples[i].String())
+			}
+			f.Close()
+			os.Remove(path)
+		}
 	}
 }
