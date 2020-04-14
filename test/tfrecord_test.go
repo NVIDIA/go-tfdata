@@ -6,8 +6,6 @@
 package test
 
 import (
-	"bytes"
-	"image/jpeg"
 	"io"
 	"os"
 	"sync"
@@ -122,10 +120,7 @@ func TestTfMediumRecordReader(t *testing.T) {
 	tassert.Errorf(t, len(readTfExamples) == 7, "expected to read 7 tf.Examples, got %d", len(readTfExamples))
 
 	for _, example := range readTfExamples {
-		imgFeature := example.Features.Feature["image_raw"]
-		value := imgFeature.GetBytesList().GetValue()
-		tassert.Errorf(t, len(value) == 1, "expected one element list, got %d elements", len(value))
-		img, err := jpeg.Decode(bytes.NewBuffer(value[0]))
+		img, err := example.GetImage("image_raw")
 		tassert.CheckFatal(t, err)
 		tassert.Errorf(t, img.Bounds().Dx() == img.Bounds().Dy() || img.Bounds().Dx() != 224, "unexpected dimensions of an image; expected 224,224")
 	}
