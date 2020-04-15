@@ -1,0 +1,29 @@
+*.log
+*.test
+*.csv
+*.svg
+.*.swp
+tags
+FlameGraph/
+
+## PYTHON ##
+
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# C extensions
+*.so
+
+# Unit test / coverage reports
+htmlcov/
+.tox/
+.nox/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+.hypothesis/

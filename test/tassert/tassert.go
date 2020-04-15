@@ -24,7 +24,6 @@ func CheckError(t *testing.T, err error) {
 	}
 }
 
-
 func Fatalf(t *testing.T, cond bool, msg string, args ...interface{}) {
 	if !cond {
 		debug.PrintStack()

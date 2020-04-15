@@ -170,7 +170,7 @@ func (r *TFRecordReader) ReadNext(message protobuf.Message) error {
 }
 
 // ReadAllExamples reads examples from TFRecord until EOF and loads them into memory
-// If error occured it terminates immediately without reading subsequent samples
+// If error occurred it terminates immediately without reading subsequent samples
 // Returns slice of examples and error if occurred.
 func (r *TFRecordReader) ReadAllExamples(expectedSize ...int) ([]*TFExample, error) {
 	expectedExamplesCnt := 20
@@ -181,16 +181,15 @@ func (r *TFRecordReader) ReadAllExamples(expectedSize ...int) ([]*TFExample, err
 
 	for {
 		ex, err := r.ReadNextExample()
-		if err == nil {
+		switch err {
+		case nil:
 			result = append(result, ex)
-		} else if err == io.EOF {
-			break
-		} else {
+		case io.EOF:
+			return result, nil
+		default:
 			return nil, err
 		}
 	}
-
-	return result, nil
 }
 
 // ReadExamples reads and puts into ch examples from TFRecord one-by-one
@@ -200,16 +199,15 @@ func (r *TFRecordReader) ReadExamples(ch chan<- *TFExample) error {
 	defer close(ch)
 	for {
 		ex, err := r.ReadNextExample()
-		if err == nil {
+		switch err {
+		case nil:
 			ch <- ex
-		} else if err == io.EOF {
-			break
-		} else {
+		case io.EOF:
+			return nil
+		default:
 			return err
 		}
 	}
-
-	return nil
 }
 
 // TFRecordSource returns function which reads examples from stream and puts them into pipe. For example usage see
@@ -217,7 +215,7 @@ func (r *TFRecordReader) ReadExamples(ch chan<- *TFExample) error {
 func TFRecordSource(stream io.ReadCloser) func(pipe TFExamplePipe) {
 	return func(outch TFExamplePipe) {
 		r := NewTFRecordReader(stream)
-		r.ReadExamples(outch)
+		_ = r.ReadExamples(outch)
 		_ = stream.Close()
 	}
 }
@@ -227,7 +225,7 @@ func TFRecordSource(stream io.ReadCloser) func(pipe TFExamplePipe) {
 func TFRecordSink(dest io.WriteCloser) func(pipe TFExamplePipe) {
 	return func(inch TFExamplePipe) {
 		w := NewTFRecordWriter(dest)
-		w.WriteExamples(inch)
+		_ = w.WriteExamples(inch)
 		_ = dest.Close()
 	}
 }

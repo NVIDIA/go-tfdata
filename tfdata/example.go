@@ -3,7 +3,6 @@
 //
 // Copyright (c) 2020, NVIDIA CORPORATION. All rights reserved.
 //
-
 package tfdata
 
 import (
@@ -11,9 +10,9 @@ import (
 	"image"
 	"image/png"
 
-	_ "image/gif"
-	_ "image/jpeg"
-	_ "image/png"
+	_ "image/gif"  // make image.Decode know how to decode gif
+	_ "image/jpeg" // make image.Decode know how to decode jpeg
+	_ "image/png"  // make image.Decode know how to decode png
 
 	"github.com/NVIDIA/go-tfdata/proto"
 	"github.com/NVIDIA/go-tfdata/tfdata/internal/cmn"
@@ -35,7 +34,7 @@ func NewTFExample() *TFExample {
 	ex := proto.Example{
 		Features: &proto.Features{Feature: make(map[string]*proto.Feature)},
 	}
-
+	//nolint
 	return &TFExample{ex}
 }
 
@@ -93,12 +92,12 @@ func (e *TFExample) GetBytesList(name string) []byte {
 	return f[0]
 }
 
-func (e *TFExample) AddBytesList(name string, bytes [][]byte) {
-	e.Features.Feature[name] = &proto.Feature{Kind: &proto.Feature_BytesList{BytesList: &proto.BytesList{Value: bytes}}}
+func (e *TFExample) AddBytesList(name string, bs [][]byte) {
+	e.Features.Feature[name] = &proto.Feature{Kind: &proto.Feature_BytesList{BytesList: &proto.BytesList{Value: bs}}}
 }
 
-func (e *TFExample) AddBytes(name string, bytes ...[]byte) {
-	e.AddBytesList(name, bytes)
+func (e *TFExample) AddBytes(name string, bs ...[]byte) {
+	e.AddBytesList(name, bs)
 }
 
 func (e *TFExample) AddImage(name string, img image.Image) error {

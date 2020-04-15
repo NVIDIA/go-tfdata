@@ -1,0 +1,35 @@
+image: golang:1.13
+
+stages:
+  - build
+  - test
+
+cache:
+  paths:
+    - /apt-cache
+    - /go/src/github.com
+    - /go/src/golang.org
+    - /go/src/google.golang.org
+    - /go/src/gopkg.in
+
+before_script:
+  - apt-get clean && apt-get update
+  - apt-get --no-install-recommends -y install curl git
+  - apt-get -y clean all
+  - mkdir -p /go/src/github.com/NVIDIA /go/src/_/builds
+  - cp -r $CI_PROJECT_DIR /go/src/github.com/NVIDIA/go-tfdata
+  - ln -s /go/src/github.com/NVIDIA/go-tfdata /go/src/_/builds/NVIDIA
+  - cd /go/src/github.com/NVIDIA/go-tfdata
+
+fmt-spell-lint:
+  stage: build
+  script:
+    - make fmt-check
+    - make spell-check
+    - make lint
+
+test:
+  stage: test
+  script:
+    - make test
+
