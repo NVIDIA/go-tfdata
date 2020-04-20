@@ -12,12 +12,12 @@ import (
 	"testing"
 
 	"github.com/NVIDIA/go-tfdata/test/tassert"
-	"github.com/NVIDIA/go-tfdata/tfdata"
+	"github.com/NVIDIA/go-tfdata/tfdata/core"
 	protobuf "google.golang.org/protobuf/proto"
 )
 
-func writeExamples(w io.Writer, examples []*tfdata.TFExample) error {
-	tfWriter := tfdata.NewTFRecordWriter(w)
+func writeExamples(w io.Writer, examples []*core.TFExample) error {
+	tfWriter := core.NewTFRecordWriter(w)
 	for _, example := range examples {
 		_, err := tfWriter.WriteExample(example)
 		if err != nil {
@@ -27,50 +27,50 @@ func writeExamples(w io.Writer, examples []*tfdata.TFExample) error {
 	return nil
 }
 
-func writeExamplesCh(w io.Writer, examples []*tfdata.TFExample) error {
+func writeExamplesCh(w io.Writer, examples []*core.TFExample) error {
 	var (
-		tfWriter = tfdata.NewTFRecordWriter(w)
-		ch       = make(chan *tfdata.TFExample, 5)
+		tfWriter = core.NewTFRecordWriter(w)
+		wCh      = core.NewTFExampleChannel(5)
 		wg       = sync.WaitGroup{}
 		err      error
 	)
 
 	wg.Add(1)
 	go func() {
-		err = tfWriter.WriteExamples(ch)
+		err = tfWriter.WriteMessages(wCh)
 		wg.Done()
 	}()
 
 	for _, example := range examples {
-		ch <- example
+		wCh.Write(example)
 	}
-	close(ch)
+	wCh.Close()
 
 	wg.Wait()
 	return err
 }
 
-func readExamples(r io.Reader) ([]*tfdata.TFExample, error) {
-	tfReader := tfdata.NewTFRecordReader(r)
+func readExamples(r io.Reader) ([]*core.TFExample, error) {
+	tfReader := core.NewTFRecordReader(r)
 	return tfReader.ReadAllExamples()
 }
 
-func readExamplesCh(r io.Reader) ([]*tfdata.TFExample, error) {
+func readExamplesCh(r io.Reader) ([]*core.TFExample, error) {
 	var (
 		err      error
-		tfReader = tfdata.NewTFRecordReader(r)
+		tfReader = core.NewTFRecordReader(r)
 		wg       = sync.WaitGroup{}
-		result   = make([]*tfdata.TFExample, 0, 20)
-		ch       = make(chan *tfdata.TFExample, 20)
+		result   = make([]*core.TFExample, 0, 20)
+		w        = core.NewTFExampleChannel(20)
 	)
 
 	wg.Add(1)
 	go func() {
-		err = tfReader.ReadExamples(ch)
+		err = tfReader.ReadExamples(w)
 		wg.Done()
 	}()
 
-	for ex := range ch {
+	for ex, ok := w.Read(); ok; ex, ok = w.Read() {
 		result = append(result, ex)
 	}
 
@@ -78,10 +78,10 @@ func readExamplesCh(r io.Reader) ([]*tfdata.TFExample, error) {
 	return result, err
 }
 
-func prepareExamples(cnt int) []*tfdata.TFExample {
-	result := make([]*tfdata.TFExample, 0, cnt)
+func prepareExamples(cnt int) []*core.TFExample {
+	result := make([]*core.TFExample, 0, cnt)
 	for i := 0; i < cnt; i++ {
-		ex := tfdata.NewTFExample()
+		ex := core.NewTFExample()
 		ex.AddIntList("int-list", []int{0, 1, 2, 3, 4, 5})
 		ex.AddFloat("float", 0.42)
 		ex.AddBytes("bytes", []byte("bytesstring"))
@@ -133,8 +133,8 @@ func TestTfRecordWriterReader(t *testing.T) {
 		path = "/tmp/testtfrecordwriterreader"
 	)
 	var (
-		writers = []func(w io.Writer, examples []*tfdata.TFExample) error{writeExamples, writeExamplesCh}
-		readers = []func(r io.Reader) ([]*tfdata.TFExample, error){readExamples, readExamplesCh}
+		writers = []func(w io.Writer, examples []*core.TFExample) error{writeExamples, writeExamplesCh}
+		readers = []func(r io.Reader) ([]*core.TFExample, error){readExamples, readExamplesCh}
 	)
 
 	defer func() {

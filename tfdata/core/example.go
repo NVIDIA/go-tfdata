@@ -3,7 +3,7 @@
 //
 // Copyright (c) 2020, NVIDIA CORPORATION. All rights reserved.
 //
-package tfdata
+package core
 
 import (
 	"bytes"
@@ -38,8 +38,17 @@ func NewTFExample() *TFExample {
 	return &TFExample{ex}
 }
 
+func (e *TFExample) HasFeature(name string) bool {
+	_, ok := e.Features.Feature[name]
+	return ok
+}
+
 func (e *TFExample) GetFeature(name string) *proto.Feature {
 	return e.Features.Feature[name]
+}
+
+func (e *TFExample) SetFeature(name string, feature *proto.Feature) {
+	e.Features.Feature[name] = feature
 }
 
 func (e *TFExample) GetInt64List(name string) []int64 {

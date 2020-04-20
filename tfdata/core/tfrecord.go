@@ -2,8 +2,7 @@
 //
 // Copyright (c) 2020, NVIDIA CORPORATION. All rights reserved.
 //
-
-package tfdata
+package core
 
 import (
 	"encoding/binary"
@@ -22,7 +21,7 @@ type (
 		WriteMessage(protobuf.Message) (n int, err error)
 		WriteExample(*TFExample) (n int, err error)
 
-		WriteMessages(fromCh protobuf.Message) error
+		WriteMessages(reader TFExampleReader) error
 	}
 
 	// TFRecordReaderInterface is an interface which reads objects from TFRecord format
@@ -32,7 +31,7 @@ type (
 		ReadNextExample() (*TFExample, error)
 
 		ReadAllExamples(expectedSize ...int) ([]*TFExample, error)
-		ReadExamples(toCh chan *TFExample) error
+		ReadExamples(writer TFExampleWriter) error
 	}
 
 	// TFRecordWriter implements TFRecordWriter interface
@@ -103,9 +102,9 @@ func (w *TFRecordWriter) WriteMessage(message protoreflect.ProtoMessage) (n int,
 // WriteMessages reads and writes to TFRecord messages one-by-one from ch and terminates
 // when ch is closed and empty. WriteMessages doesn't close ch itself.
 // Returns error immediately if occurred, without processing subsequent messages
-func (w *TFRecordWriter) WriteMessages(ch <-chan protoreflect.ProtoMessage) error {
-	for message := range ch {
-		_, err := w.WriteMessage(message)
+func (w *TFRecordWriter) WriteMessages(reader TFExampleReader) error {
+	for ex, ok := reader.Read(); ok; ex, ok = reader.Read() {
+		_, err := w.WriteMessage(ex)
 		if err != nil {
 			return err
 		}
@@ -195,37 +194,20 @@ func (r *TFRecordReader) ReadAllExamples(expectedSize ...int) ([]*TFExample, err
 // ReadExamples reads and puts into ch examples from TFRecord one-by-one
 // It error occurred, ReadExamples terminates immediately, without processing subsequent samples.
 // ReadExamples closes ch upon termination.
-func (r *TFRecordReader) ReadExamples(ch chan<- *TFExample) error {
-	defer close(ch)
+func (r *TFRecordReader) ReadExamples(writer TFExampleWriter) error {
+	defer writer.Close()
 	for {
 		ex, err := r.ReadNextExample()
 		switch err {
 		case nil:
-			ch <- ex
+			err = writer.Write(ex)
+			if err != nil {
+				return err
+			}
 		case io.EOF:
 			return nil
 		default:
 			return err
 		}
-	}
-}
-
-// TFRecordSource returns function which reads examples from stream and puts them into pipe. For example usage see
-//  func TestPipeline(t *testing.T)
-func TFRecordSource(stream io.ReadCloser) func(pipe TFExamplePipe) {
-	return func(outch TFExamplePipe) {
-		r := NewTFRecordReader(stream)
-		_ = r.ReadExamples(outch)
-		_ = stream.Close()
-	}
-}
-
-// TFRecordSink returns function which gets examples from pipe and writes them to dest. For example of usage, see
-//  func TestPipeline(t *testing.T)
-func TFRecordSink(dest io.WriteCloser) func(pipe TFExamplePipe) {
-	return func(inch TFExamplePipe) {
-		w := NewTFRecordWriter(dest)
-		_ = w.WriteExamples(inch)
-		_ = dest.Close()
 	}
 }
