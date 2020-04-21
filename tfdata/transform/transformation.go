@@ -18,11 +18,11 @@ type (
 		TransformSample(s *core.Sample) *core.Sample
 	}
 
-	SampleSelections struct {
+	SampleSelectionsTransformation struct {
 		selections []selection.Sample
 	}
 
-	ExampleSelections struct {
+	ExampleSelectionsTransformation struct {
 		selections []selection.Example
 	}
 
@@ -35,8 +35,8 @@ type (
 )
 
 var (
-	_, _, _ SampleTransformation    = ID{}, &Rename{}, &SampleSelections{}
-	_, _, _ TFExampleTransformation = ID{}, &Rename{}, &ExampleSelections{}
+	_, _, _ SampleTransformation    = ID{}, &Rename{}, &SampleSelectionsTransformation{}
+	_, _, _ TFExampleTransformation = ID{}, &Rename{}, &ExampleSelectionsTransformation{}
 )
 
 func RenameTransformation(dest string, src []string) *Rename {
@@ -71,7 +71,7 @@ func (t ID) TransformSample(s *core.Sample) *core.Sample {
 	return s
 }
 
-func (s *ExampleSelections) TransformTFExample(ex *core.TFExample) *core.TFExample {
+func (s *ExampleSelectionsTransformation) TransformTFExample(ex *core.TFExample) *core.TFExample {
 	keysSubset := make(map[string]struct{})
 	for _, selection := range s.selections {
 		for _, key := range selection.SelectExample(ex) {
@@ -87,7 +87,7 @@ func (s *ExampleSelections) TransformTFExample(ex *core.TFExample) *core.TFExamp
 	return ex
 }
 
-func (s *SampleSelections) TransformSample(sample *core.Sample) *core.Sample {
+func (s *SampleSelectionsTransformation) TransformSample(sample *core.Sample) *core.Sample {
 	keysSubset := make(map[string]struct{})
 	for _, selection := range s.selections {
 		for _, key := range selection.SelectSample(sample) {
@@ -103,10 +103,12 @@ func (s *SampleSelections) TransformSample(sample *core.Sample) *core.Sample {
 	return sample
 }
 
-func NewSampleSelections(s ...selection.Sample) *SampleSelections {
-	return &SampleSelections{selections: s}
+// Return Transformation based on specified Selections
+func SampleSelections(s ...selection.Sample) *SampleSelectionsTransformation {
+	return &SampleSelectionsTransformation{selections: s}
 }
 
-func NewExampleSelections(s ...selection.Example) *ExampleSelections {
-	return &ExampleSelections{selections: s}
+// return Transformation based on specified Selections
+func ExampleSelections(s ...selection.Example) *ExampleSelectionsTransformation {
+	return &ExampleSelectionsTransformation{selections: s}
 }

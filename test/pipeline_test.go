@@ -35,13 +35,13 @@ func TestPipeline(t *testing.T) {
 	tassert.CheckFatal(t, err)
 	defer os.Remove(destPath)
 
-	p = pipeline.NewProcess()
+	p = pipeline.NewPipeline()
 	p.FromTar(sourceFd)
-	p.WithLocalSamplesTransformations(transform.ID{})
-	p.WithDefaultSample2TFExample()
-	p.WithLocalTFExamplesTransformations(
+	p.TransformSamples(transform.ID{})
+	p.DefaultSampleToTFExample()
+	p.TransformTFExamples(
 		transform.RenameTransformation("image", []string{"jpeg", "jpg"}),
-		transform.NewExampleSelections(selection.ByKey("image")))
+		transform.ExampleSelections(selection.ByKey("image")))
 	p.ToTFRecord(sinkFd)
 
 	p.Do()

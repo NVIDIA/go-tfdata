@@ -22,21 +22,21 @@ type (
 
 	DefaultPipeline struct {
 		tarStage            TarStage
-		samplesStage        SamplesStage
+		samplesStage        SamplesStage // optional stage - consumes the same type as produces
 		sample2ExampleStage Sample2ExampleStage
-		tfExamplesStage     TFExamplesStage
+		tfExamplesStage     TFExamplesStage // optional stage - consumes the same type as produces
 		tfRecordStage       TFRecordStage
 	}
 )
 
-func (p *DefaultPipeline) WithLocalSamplesTransformations(tfs ...transform.SampleTransformation) *DefaultPipeline {
+func (p *DefaultPipeline) TransformSamples(tfs ...transform.SampleTransformation) *DefaultPipeline {
 	cmn.Assert(p.samplesStage == nil)
 	return p.WithSamplesStage(func(r core.SampleReader) core.SampleReader {
 		return transform.NewSampleTransformer(r, tfs...)
 	})
 }
 
-func (p *DefaultPipeline) WithLocalTFExamplesTransformations(tfs ...transform.TFExampleTransformation) *DefaultPipeline {
+func (p *DefaultPipeline) TransformTFExamples(tfs ...transform.TFExampleTransformation) *DefaultPipeline {
 	cmn.Assert(p.tfExamplesStage == nil)
 	return p.WithTFExamplesStage(func(r core.TFExampleReader) core.TFExampleReader {
 		return transform.NewTFExampleTransformer(r, tfs...)
@@ -70,7 +70,7 @@ func (p *DefaultPipeline) ToTFRecord(w io.Writer) *DefaultPipeline {
 	})
 }
 
-func (p *DefaultPipeline) WithDefaultSample2TFExample() *DefaultPipeline {
+func (p *DefaultPipeline) DefaultSampleToTFExample() *DefaultPipeline {
 	cmn.Assert(p.sample2ExampleStage == nil)
 	return p.WithSample2ExampleStage(func(sr core.SampleReader) core.TFExampleReader {
 		return core.NewSamplesToTFExampleTransformer(sr)
@@ -94,7 +94,7 @@ func (p *DefaultPipeline) Do() {
 
 // default setters
 
-func NewProcess() *DefaultPipeline {
+func NewPipeline() *DefaultPipeline {
 	return &DefaultPipeline{}
 }
 
