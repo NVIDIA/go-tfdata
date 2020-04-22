@@ -19,6 +19,7 @@ or provided by a user)
 - `DefaultSampleToTFExample` - default transformation from `Sample` to `TFExample` format
 - `TransformTFExamples(transformations)` - transform each `TFExample` according to provided transformations
 - `ToTFRecord(io.Writer)` - write serialized TFExamples to `io.Writer` in TFRecord file format
+- `FilterEmptyExamples(reader)`, `FilterEmptySamples(reader)` - filter reader from empty TFExamples / Samples
 
 ### Available transformations and selections
 

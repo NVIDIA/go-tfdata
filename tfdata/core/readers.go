@@ -42,17 +42,11 @@ type (
 	SampleChannel struct {
 		ch chan *Sample
 	}
-
-	SamplesToTFExamplesTransformer struct {
-		reader SampleReader
-	}
 )
 
 var (
 	_ TFExampleReadWriter = &TFExampleChannel{}
-	_ TFExampleReader     = &SamplesToTFExamplesTransformer{}
-
-	_ SampleReadWriter = &SampleChannel{}
+	_ SampleReadWriter    = &SampleChannel{}
 )
 
 // TFExampleReaders / TFExampleWriters
@@ -93,21 +87,4 @@ func (c *SampleChannel) Write(sample *Sample) error {
 
 func (c *SampleChannel) Close() {
 	close(c.ch)
-}
-
-func NewSamplesToTFExampleTransformer(reader SampleReader) *SamplesToTFExamplesTransformer {
-	return &SamplesToTFExamplesTransformer{reader: reader}
-}
-
-func (t *SamplesToTFExamplesTransformer) Read() (ex *TFExample, ok bool) {
-	sample, ok := t.reader.Read()
-	if !ok {
-		return nil, false
-	}
-
-	example := NewTFExample()
-	for k, v := range sample.Entries {
-		example.AddBytes(k, v)
-	}
-	return example, true
 }

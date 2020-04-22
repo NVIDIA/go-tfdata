@@ -28,7 +28,7 @@ type (
 	// TFRecord format is described here: https://www.tensorflow.org/tutorials/load_data/tfrecord#tfrecords_format_details
 	TFRecordReaderInterface interface {
 		ReadNext(protobuf.Message) error
-		ReadNextExample() (*TFExample, error)
+		Read() (*TFExample, error)
 
 		ReadAllExamples(expectedSize ...int) ([]*TFExample, error)
 		ReadExamples(writer TFExampleWriter) error
@@ -129,7 +129,7 @@ func NewTFRecordReader(r io.Reader) *TFRecordReader {
 	return &TFRecordReader{r: r, c: checksum.NewCRCChecksummer()}
 }
 
-func (r *TFRecordReader) ReadNextExample() (*TFExample, error) {
+func (r *TFRecordReader) Read() (*TFExample, error) {
 	ex := &TFExample{}
 	return ex, r.ReadNext(ex)
 }
@@ -179,7 +179,7 @@ func (r *TFRecordReader) ReadAllExamples(expectedSize ...int) ([]*TFExample, err
 	result := make([]*TFExample, 0, expectedExamplesCnt)
 
 	for {
-		ex, err := r.ReadNextExample()
+		ex, err := r.Read()
 		switch err {
 		case nil:
 			result = append(result, ex)
@@ -197,7 +197,7 @@ func (r *TFRecordReader) ReadAllExamples(expectedSize ...int) ([]*TFExample, err
 func (r *TFRecordReader) ReadExamples(writer TFExampleWriter) error {
 	defer writer.Close()
 	for {
-		ex, err := r.ReadNextExample()
+		ex, err := r.Read()
 		switch err {
 		case nil:
 			err = writer.Write(ex)

@@ -7,6 +7,7 @@ package archive
 
 import (
 	"archive/tar"
+	"bytes"
 	"compress/gzip"
 	"io"
 
@@ -62,7 +63,6 @@ func newTarGzSeekReader(reader io.ReadSeeker) (*TarSeekReader, error) {
 	}
 	tarReader.r = tar.NewReader(gzr)
 
-	err = tarReader.prepareMeta()
 	return tarReader, err
 }
 
@@ -112,20 +112,20 @@ func (t *TarSeekReader) Read() (sample *core.Sample, ok bool) {
 		switch header.Typeflag {
 		case tar.TypeDir:
 			continue
-
 		case tar.TypeReg:
-			buff := make([]byte, header.Size)
-			n, err := t.r.Read(buff)
+			buf := make([]byte, header.Size)
+			n, err := io.Copy(bytes.NewBuffer(buf), t.r)
+
 			if err != nil && err != io.EOF {
 				glog.Error(err)
 				return nil, false
 			}
-			if int64(n) != header.Size {
+			if n != header.Size {
 				glog.Errorf("expected to read %d bytes, read %d instead", header.Size, n)
 				return nil, false
 			}
 
-			t.recordsManager.UpdateRecord(name, ext, buff)
+			t.recordsManager.UpdateRecord(name, ext, buf)
 			if t.recordsMetaManager.GetRecord(name).SameMembers(t.recordsManager.GetRecord(name)) {
 				sample = core.NewSample(name, t.recordsManager.GetRecord(name).Members)
 				t.recordsMetaManager.DeleteRecord(name)

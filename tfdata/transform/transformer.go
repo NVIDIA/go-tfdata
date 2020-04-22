@@ -7,8 +7,8 @@ package transform
 import "github.com/NVIDIA/go-tfdata/tfdata/core"
 
 type (
-	// Simple - meaning that it does everything locally, doesn't even preload anything
-	// However, it's easy to imagine more advanced Reader which has the same Read() interface
+	// TFExampleTransformer - it does everything locally, doesn't even preload anything from internal reader.
+	// However, it's easy to imagine more advanced Transformer (Reader) which has the same Read() interface,
 	// but underneath prefetches TFExamples, distributes them amongst external workers
 	// and after transformations gathers TFExamples and make them available to Read()
 	TFExampleTransformer struct {
@@ -16,17 +16,24 @@ type (
 		transformations []TFExampleTransformation
 	}
 
+	// Transforms SamplesReader based on given transformations
 	SamplesTransformer struct {
 		reader          core.SampleReader
 		transformations []SampleTransformation
 	}
+
+	// Default SamplesToTFExamples transformer: put into TFExample each of Sample entries as BytesList
+	SamplesToTFExamplesTransformer struct {
+		reader core.SampleReader
+	}
 )
 
 var (
-	_ core.TFExampleReader = &TFExampleTransformer{}
-	_ core.SampleReader    = &SamplesTransformer{}
+	_, _ core.TFExampleReader = &TFExampleTransformer{}, &SamplesToTFExamplesTransformer{}
+	_    core.SampleReader    = &SamplesTransformer{}
 )
 
+// NewTFExampleTransformer consumes TFExampleReader, applies transformations in order of occurrence, produces TFExampleReader.
 func NewTFExampleTransformer(reader core.TFExampleReader, ts ...TFExampleTransformation) core.TFExampleReader {
 	return &TFExampleTransformer{
 		reader:          reader,
@@ -45,6 +52,7 @@ func (t *TFExampleTransformer) Read() (*core.TFExample, bool) {
 	return ex, true
 }
 
+// NewSampleTransformer consumes TFExampleReader, applies transformations in order of occurrence, produces SampleReader.
 func NewSampleTransformer(reader core.SampleReader, ts ...SampleTransformation) core.SampleReader {
 	return &SamplesTransformer{
 		reader:          reader,
@@ -61,4 +69,23 @@ func (t *SamplesTransformer) Read() (*core.Sample, bool) {
 		sample = t.TransformSample(sample)
 	}
 	return sample, true
+}
+
+// NewSamplesToTFExample consumes SampleReader, applies default Sample to TFExample conversion, produces TFExampleReader.
+// Default Sample to TFExample conversion is put into TFExample each of Sample entries as BytesList
+func NewSamplesToTFExample(reader core.SampleReader) *SamplesToTFExamplesTransformer {
+	return &SamplesToTFExamplesTransformer{reader: reader}
+}
+
+func (t *SamplesToTFExamplesTransformer) Read() (ex *core.TFExample, ok bool) {
+	sample, ok := t.reader.Read()
+	if !ok {
+		return nil, false
+	}
+
+	example := core.NewTFExample()
+	for k, v := range sample.Entries {
+		example.AddBytes(k, v)
+	}
+	return example, true
 }

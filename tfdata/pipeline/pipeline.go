@@ -9,6 +9,7 @@ import (
 
 	"github.com/NVIDIA/go-tfdata/tfdata/archive"
 	"github.com/NVIDIA/go-tfdata/tfdata/core"
+	"github.com/NVIDIA/go-tfdata/tfdata/filter"
 	"github.com/NVIDIA/go-tfdata/tfdata/internal/cmn"
 	"github.com/NVIDIA/go-tfdata/tfdata/transform"
 )
@@ -43,6 +44,26 @@ func (p *DefaultPipeline) TransformTFExamples(tfs ...transform.TFExampleTransfor
 	})
 }
 
+func (p *DefaultPipeline) FilterEmptySamples() *DefaultPipeline {
+	samplesStage := p.samplesStage
+	return p.WithSamplesStage(func(reader core.SampleReader) core.SampleReader {
+		if samplesStage != nil {
+			reader = samplesStage(reader)
+		}
+		return filter.EmptySamples(reader)
+	})
+}
+
+func (p *DefaultPipeline) FilterEmptyExamples() *DefaultPipeline {
+	tfExamplesStage := p.tfExamplesStage
+	return p.WithTFExamplesStage(func(reader core.TFExampleReader) core.TFExampleReader {
+		if tfExamplesStage != nil {
+			reader = tfExamplesStage(reader)
+		}
+		return filter.EmptyExamples(reader)
+	})
+}
+
 func (p *DefaultPipeline) FromTar(input io.Reader) *DefaultPipeline {
 	cmn.Assert(p.tarStage == nil)
 	return p.WithTarStage(func() core.SampleReader {
@@ -73,7 +94,7 @@ func (p *DefaultPipeline) ToTFRecord(w io.Writer) *DefaultPipeline {
 func (p *DefaultPipeline) DefaultSampleToTFExample() *DefaultPipeline {
 	cmn.Assert(p.sample2ExampleStage == nil)
 	return p.WithSample2ExampleStage(func(sr core.SampleReader) core.TFExampleReader {
-		return core.NewSamplesToTFExampleTransformer(sr)
+		return transform.NewSamplesToTFExample(sr)
 	})
 }
 

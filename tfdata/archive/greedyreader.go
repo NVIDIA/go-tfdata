@@ -6,6 +6,7 @@ package archive
 
 import (
 	"archive/tar"
+	"bytes"
 	"compress/gzip"
 	"fmt"
 	"io"
@@ -64,18 +65,17 @@ func (t *TarGreedyReader) prepareRecords() error {
 		switch header.Typeflag {
 		case tar.TypeDir:
 			continue
-
 		case tar.TypeReg:
-			buff := make([]byte, header.Size)
-			n, err := t.r.Read(buff)
+			buf := make([]byte, header.Size)
+			n, err := io.Copy(bytes.NewBuffer(buf), t.r)
 			if err != nil && err != io.EOF {
 				return err
 			}
-			if int64(n) != header.Size {
+			if n != header.Size {
 				return fmt.Errorf("expected to read %d bytes, read %d instead", header.Size, n)
 			}
 
-			t.rm.UpdateRecord(name, ext, buff)
+			t.rm.UpdateRecord(name, ext, buf)
 		}
 	}
 }

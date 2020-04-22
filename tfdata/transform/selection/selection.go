@@ -22,18 +22,22 @@ type (
 		SelectExample(*core.TFExample) []string
 	}
 
+	// Selects keys either equal to key, or having suffix, prefix or substring
 	Key struct {
 		key, suffix, prefix, substring string
 	}
 
+	// Applies f to each sample and selects returned keys subset
 	SampleF struct {
 		f func(*core.Sample) []string
 	}
 
+	// Applies f to each example and selects returned keys subset
 	ExampleF struct {
 		f func(*core.TFExample) []string
 	}
 
+	// Selects entry if entries[key == value
 	KeyValue struct {
 		key   string
 		value interface{}
@@ -45,6 +49,7 @@ var (
 	_, _, _ Example = &Key{}, &ExampleF{}, &KeyValue{}
 )
 
+// Select entries with given key
 func ByKey(key string) *Key {
 	return &Key{key: key}
 }
@@ -67,7 +72,7 @@ func BySubstring(substring string) *Key {
 func (s *Key) SelectSample(sample *core.Sample) []string {
 	res := make([]string, 0)
 	for k := range sample.Entries {
-		if k == s.key || strings.HasPrefix(k, s.prefix) || strings.HasSuffix(k, s.suffix) || strings.Contains(k, s.substring) {
+		if s.keyMatches(k) {
 			res = append(res, k)
 		}
 	}
@@ -77,11 +82,18 @@ func (s *Key) SelectSample(sample *core.Sample) []string {
 func (s *Key) SelectExample(ex *core.TFExample) []string {
 	res := make([]string, 0)
 	for k := range ex.GetFeatures().Feature {
-		if k == s.key || strings.HasPrefix(k, s.prefix) || strings.HasSuffix(k, s.suffix) || strings.Contains(k, s.substring) {
+		if s.keyMatches(k) {
 			res = append(res, k)
 		}
 	}
 	return res
+}
+
+func (s *Key) keyMatches(key string) bool {
+	return (s.key != "" && key == s.key) ||
+		(s.prefix != "" && strings.HasPrefix(key, s.prefix)) ||
+		(s.suffix != "" && strings.HasSuffix(key, s.suffix)) ||
+		(s.substring != "" && strings.Contains(key, s.substring))
 }
 
 // Select subset of Sample's entries returned by a function

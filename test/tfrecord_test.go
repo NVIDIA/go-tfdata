@@ -172,3 +172,34 @@ func TestTfRecordWriterReader(t *testing.T) {
 		}
 	}
 }
+
+func TestTFRecordWriterReaderFromTFExampleReader(t *testing.T) {
+	const (
+		path = "/tmp/testtfrecordwriter.record"
+		size = 3
+	)
+	var (
+		sinkFd, sourceFd *os.File
+		err              error
+	)
+
+	reader := &testTFExamplesReader{size: size}
+	sinkFd, err = os.Create(path)
+	tassert.CheckFatal(t, err)
+	defer os.Remove(path)
+
+	recordWriter := core.NewTFRecordWriter(sinkFd)
+	err = recordWriter.WriteMessages(reader)
+	tassert.CheckFatal(t, err)
+
+	sourceFd, err = os.Open(path)
+	tassert.CheckFatal(t, err)
+	recordReader := core.NewTFRecordReader(sourceFd)
+
+	cnt := 0
+	for _, err = recordReader.Read(); err == nil; _, err = recordReader.Read() {
+		cnt++
+	}
+	tassert.Fatalf(t, err == io.EOF, "expected EOF, got %v", err)
+	tassert.Fatalf(t, cnt == size, "expected to read %d examples, got %d", size, cnt)
+}

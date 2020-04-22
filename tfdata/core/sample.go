@@ -11,6 +11,10 @@ type (
 	}
 )
 
-func NewSample(name string, entries map[string][]byte) *Sample {
-	return &Sample{Name: name, Entries: entries}
+func NewSample(name string, entries ...map[string][]byte) *Sample {
+	if len(entries) > 0 {
+		return &Sample{Name: name, Entries: entries[0]}
+	}
+
+	return &Sample{Name: name, Entries: make(map[string][]byte)}
 }

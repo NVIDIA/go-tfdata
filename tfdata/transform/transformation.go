@@ -18,10 +18,12 @@ type (
 		TransformSample(s *core.Sample) *core.Sample
 	}
 
+	// Sample transformation based on selections. Result is union of selections
 	SampleSelectionsTransformation struct {
 		selections []selection.Sample
 	}
 
+	// Example transformation based on selections. Result is union of selections
 	ExampleSelectionsTransformation struct {
 		selections []selection.Example
 	}
@@ -31,7 +33,18 @@ type (
 		src  []string
 	}
 
+	// ID transformation, does nothing
 	ID struct{}
+
+	// Transformation based on function
+	SampleFuncTransformation struct {
+		f func(*core.Sample) *core.Sample
+	}
+
+	// Transformation based on function
+	TFExampleFuncTransformation struct {
+		f func(example *core.TFExample) *core.TFExample
+	}
 )
 
 var (
@@ -103,12 +116,28 @@ func (s *SampleSelectionsTransformation) TransformSample(sample *core.Sample) *c
 	return sample
 }
 
-// Return Transformation based on specified Selections
+// Return Transformation based on specified Selections. Resulting Samples are unions of selections.
 func SampleSelections(s ...selection.Sample) *SampleSelectionsTransformation {
 	return &SampleSelectionsTransformation{selections: s}
 }
 
-// return Transformation based on specified Selections
+// Return Transformation based on specified Selections. Resulting TFExamples are unions of selections.
 func ExampleSelections(s ...selection.Example) *ExampleSelectionsTransformation {
 	return &ExampleSelectionsTransformation{selections: s}
+}
+
+func SampleF(f func(*core.Sample) *core.Sample) *SampleFuncTransformation {
+	return &SampleFuncTransformation{f: f}
+}
+
+func (t *SampleFuncTransformation) TransformSample(sample *core.Sample) *core.Sample {
+	return t.f(sample)
+}
+
+func ExampleF(f func(*core.TFExample) *core.TFExample) *TFExampleFuncTransformation {
+	return &TFExampleFuncTransformation{f: f}
+}
+
+func (t *TFExampleFuncTransformation) TransformTFExample(ex *core.TFExample) *core.TFExample {
+	return t.f(ex)
 }
