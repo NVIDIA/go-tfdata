@@ -91,6 +91,8 @@ func (t *TarSeekReader) prepareMeta() error {
 }
 
 func (t *TarSeekReader) Read() (sample *core.Sample, ok bool) {
+	t.mtx.Lock()
+	defer t.mtx.Unlock()
 	// iterate until first tar record is ready or EOF
 	for {
 		header, err := t.r.Next()

@@ -82,11 +82,20 @@ func (p *DefaultPipeline) FromTarGz(input io.Reader) *DefaultPipeline {
 	})
 }
 
-func (p *DefaultPipeline) ToTFRecord(w io.Writer) *DefaultPipeline {
+// Writers TFExamples to specified writer in TFRecord format
+// If numWorkers provided, all pipeline transformations will be done
+// asynchronously. It assumes that all underlying Readers are async-safe.
+// All default Readers, Transformations, Selections are async-safe.
+func (p *DefaultPipeline) ToTFRecord(w io.Writer, numWorkers ...int) *DefaultPipeline {
 	cmn.Assert(p.tfRecordStage == nil)
 	return p.WithTFRecordStage(func(reader core.TFExampleReader) {
 		writer := core.NewTFRecordWriter(w)
-		err := writer.WriteMessages(reader)
+		var err error
+		if len(numWorkers) > 0 {
+			err = writer.WriteMessagesAsync(reader, numWorkers[0])
+		} else {
+			err = writer.WriteMessages(reader)
+		}
 		cmn.Assert(err == nil)
 	})
 }

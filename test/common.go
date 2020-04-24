@@ -6,6 +6,7 @@ package test
 
 import (
 	"encoding/binary"
+	"sync"
 	"time"
 
 	"github.com/NVIDIA/go-tfdata/tfdata/core"
@@ -15,6 +16,7 @@ const cntEntry = "cnt"
 
 type (
 	testTFExamplesReader struct {
+		mtx           sync.Mutex
 		readCnt, size int
 	}
 
@@ -24,6 +26,8 @@ type (
 )
 
 func (t *testTFExamplesReader) Read() (*core.TFExample, bool) {
+	t.mtx.Lock()
+	defer t.mtx.Unlock()
 	if t.readCnt == t.size {
 		return nil, false
 	}

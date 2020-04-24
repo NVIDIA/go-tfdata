@@ -10,6 +10,7 @@ import (
 	"io"
 	"path/filepath"
 	"strings"
+	"sync"
 
 	"github.com/NVIDIA/go-tfdata/tfdata/core"
 )
@@ -25,6 +26,7 @@ import (
 
 type (
 	TarSeekReader struct {
+		mtx                sync.Mutex
 		recordsManager     RecordsManager
 		recordsMetaManager RecordsManager
 		r                  *tar.Reader

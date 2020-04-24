@@ -5,10 +5,13 @@
 package core
 
 import (
+	"context"
 	"encoding/binary"
 	"io"
+	"sync"
 
 	"github.com/NVIDIA/go-tfdata/tfdata/internal/checksum"
+	"github.com/NVIDIA/go-tfdata/tfdata/internal/cmn"
 	protobuf "google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/reflect/protoreflect"
 )
@@ -104,6 +107,56 @@ func (w *TFRecordWriter) WriteMessage(message protoreflect.ProtoMessage) (n int,
 // Returns error immediately if occurred, without processing subsequent messages
 func (w *TFRecordWriter) WriteMessages(reader TFExampleReader) error {
 	for ex, ok := reader.Read(); ok; ex, ok = reader.Read() {
+		_, err := w.WriteMessage(ex)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// Reads TFExamples from reader asynchronously and writes synchronously to w.Writer
+// TFRecordWriter is last element of a pipeline, if it makes Reads asynchronously
+// All underlying readers will be called asynchronously. They all should be async-safe
+// Almost all of transformations
+func (w *TFRecordWriter) WriteMessagesAsync(reader TFExampleReader, numWorkers int) error {
+	cmn.Assert(numWorkers > 0)
+	ch := make(chan *TFExample)
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	wg := sync.WaitGroup{}
+	wg.Add(numWorkers)
+
+	for i := 0; i < numWorkers; i++ {
+		go func() {
+			defer wg.Done()
+			for {
+				ex, ok := reader.Read()
+				if !ok {
+					return
+				}
+				select {
+				case ch <- ex:
+					break
+				case <-ctx.Done():
+					return
+				}
+			}
+		}()
+	}
+
+	// close channel when all workers are done
+	go func() {
+		wg.Wait()
+		close(ch)
+	}()
+
+	// Read from ch until all workers are done with reading (then ch gets closed)
+	// If error occurred, before all workers done their job we have to cancel them,
+	// otherwise they would hang on the chanel forever. We have to use context:
+	// we can't close chanel in this loop as workers would panic if they were waiting
+	// on the chanel
+	for ex := range ch {
 		_, err := w.WriteMessage(ex)
 		if err != nil {
 			return err

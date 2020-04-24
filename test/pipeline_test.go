@@ -56,6 +56,42 @@ func TestSmallPipeline(t *testing.T) {
 	tassert.Fatalf(t, len(examples) == examplesCnt, "expected to read %d examples, but got %d", examplesCnt, len(examples))
 }
 
+func TestSmallPipelineAsync(t *testing.T) {
+	const (
+		sourcePath  = "data/small-10.tar"
+		destPath    = "/tmp/small-10.record"
+		examplesCnt = 10
+	)
+	var (
+		sourceFd, sinkFd *os.File
+		err              error
+		p                *pipeline.DefaultPipeline
+		examples         []*core.TFExample
+	)
+
+	sourceFd, err = os.Open(sourcePath)
+	tassert.CheckFatal(t, err)
+	sinkFd, err = os.Create(destPath)
+	tassert.CheckFatal(t, err)
+	defer os.Remove(destPath)
+
+	p = pipeline.NewPipeline()
+	p.FromTar(sourceFd)
+	p.DefaultSampleToTFExample()
+	p.ToTFRecord(sinkFd, 8)
+	p.Do()
+
+	sourceFd.Close()
+	sinkFd.Close()
+
+	sinkFd, err = os.Open(destPath)
+	tassert.CheckFatal(t, err)
+	w := core.NewTFRecordReader(sinkFd)
+	examples, err = w.ReadAllExamples(examplesCnt)
+	tassert.CheckFatal(t, err)
+	tassert.Fatalf(t, len(examples) == examplesCnt, "expected to read %d examples, but got %d", examplesCnt, len(examples))
+}
+
 func TestPipeline(t *testing.T) {
 	const (
 		sourcePath  = "data/small-10.tar"
