@@ -6,15 +6,14 @@ package core
 
 type (
 	Sample struct {
-		Name    string
-		Entries map[string][]byte
+		Entries map[string]interface{}
 	}
 )
 
-func NewSample(name string, entries ...map[string][]byte) *Sample {
+func NewSample(entries ...map[string]interface{}) *Sample {
 	if len(entries) > 0 {
-		return &Sample{Name: name, Entries: entries[0]}
+		return &Sample{Entries: entries[0]}
 	}
 
-	return &Sample{Name: name, Entries: make(map[string][]byte)}
+	return &Sample{Entries: make(map[string]interface{})}
 }

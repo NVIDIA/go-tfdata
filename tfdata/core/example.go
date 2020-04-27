@@ -1,6 +1,5 @@
 // Package tfdata provides interfaces to interact with TFRecord files and TFExamples.
 //
-//
 // Copyright (c) 2020, NVIDIA CORPORATION. All rights reserved.
 //
 package core

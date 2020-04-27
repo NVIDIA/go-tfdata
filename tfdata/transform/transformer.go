@@ -4,7 +4,10 @@
 //
 package transform
 
-import "github.com/NVIDIA/go-tfdata/tfdata/core"
+import (
+	"github.com/NVIDIA/go-tfdata/tfdata/core"
+	jsoniter "github.com/json-iterator/go"
+)
 
 type (
 	// TFExampleTransformer - it does everything locally, doesn't even preload anything from internal reader.
@@ -85,7 +88,11 @@ func (t *SamplesToTFExamplesTransformer) Read() (*core.TFExample, error) {
 
 	example := core.NewTFExample()
 	for k, v := range sample.Entries {
-		example.AddBytes(k, v)
+		b, err := jsoniter.Marshal(v)
+		if err != nil {
+			return nil, err
+		}
+		example.AddBytes(k, b)
 	}
 	return example, nil
 }

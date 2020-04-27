@@ -8,7 +8,6 @@ import (
 	"encoding/binary"
 	"io"
 	"sync"
-	"time"
 
 	"github.com/NVIDIA/go-tfdata/tfdata/core"
 )
@@ -45,7 +44,7 @@ func (t *testSamplesReader) Read() (*core.Sample, error) {
 
 	buf := make([]byte, 8)
 	binary.PutVarint(buf, int64(t.readCnt))
-	sample := core.NewSample(time.Now().String())
+	sample := core.NewSample()
 	sample.Entries[cntEntry] = buf
 	t.readCnt++
 	return sample, nil

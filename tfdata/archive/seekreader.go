@@ -126,7 +126,10 @@ func (t *TarSeekReader) Read() (sample *core.Sample, err error) {
 
 			t.recordsManager.UpdateRecord(name, ext, buf)
 			if t.recordsMetaManager.GetRecord(name).SameMembers(t.recordsManager.GetRecord(name)) {
-				sample = core.NewSample(name, t.recordsManager.GetRecord(name).Members)
+				sample = core.NewSample()
+				for k, v := range t.recordsManager.GetRecord(name).Members {
+					sample.Entries[k] = v
+				}
 				t.recordsMetaManager.DeleteRecord(name)
 				t.recordsManager.DeleteRecord(name)
 				return sample, nil
