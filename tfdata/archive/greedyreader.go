@@ -80,7 +80,10 @@ func (t *TarGreedyReader) prepareRecords() error {
 	}
 }
 
-func (t *TarGreedyReader) Read() (sample *core.Sample, ok bool) {
-	sample, ok = <-t.ch
-	return sample, ok
+func (t *TarGreedyReader) Read() (*core.Sample, error) {
+	sample, ok := <-t.ch
+	if !ok {
+		return sample, io.EOF
+	}
+	return sample, nil
 }

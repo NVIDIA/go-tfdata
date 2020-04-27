@@ -41,15 +41,15 @@ func NewTFExampleTransformer(reader core.TFExampleReader, ts ...TFExampleTransfo
 	}
 }
 
-func (t *TFExampleTransformer) Read() (*core.TFExample, bool) {
-	ex, ok := t.reader.Read()
-	if !ok {
-		return nil, false
+func (t *TFExampleTransformer) Read() (*core.TFExample, error) {
+	ex, err := t.reader.Read()
+	if err != nil {
+		return nil, err
 	}
 	for _, t := range t.transformations {
 		ex = t.TransformTFExample(ex)
 	}
-	return ex, true
+	return ex, nil
 }
 
 // NewSampleTransformer consumes TFExampleReader, applies transformations in order of occurrence, produces SampleReader.
@@ -60,15 +60,15 @@ func NewSampleTransformer(reader core.SampleReader, ts ...SampleTransformation) 
 	}
 }
 
-func (t *SamplesTransformer) Read() (*core.Sample, bool) {
-	sample, ok := t.reader.Read()
-	if !ok {
-		return nil, false
+func (t *SamplesTransformer) Read() (*core.Sample, error) {
+	sample, err := t.reader.Read()
+	if err != nil {
+		return nil, err
 	}
 	for _, t := range t.transformations {
 		sample = t.TransformSample(sample)
 	}
-	return sample, true
+	return sample, nil
 }
 
 // NewSamplesToTFExample consumes SampleReader, applies default Sample to TFExample conversion, produces TFExampleReader.
@@ -77,15 +77,15 @@ func NewSamplesToTFExample(reader core.SampleReader) *SamplesToTFExamplesTransfo
 	return &SamplesToTFExamplesTransformer{reader: reader}
 }
 
-func (t *SamplesToTFExamplesTransformer) Read() (ex *core.TFExample, ok bool) {
-	sample, ok := t.reader.Read()
-	if !ok {
-		return nil, false
+func (t *SamplesToTFExamplesTransformer) Read() (*core.TFExample, error) {
+	sample, err := t.reader.Read()
+	if err != nil {
+		return nil, err
 	}
 
 	example := core.NewTFExample()
 	for k, v := range sample.Entries {
 		example.AddBytes(k, v)
 	}
-	return example, true
+	return example, nil
 }

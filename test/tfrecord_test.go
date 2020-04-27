@@ -57,6 +57,7 @@ func readExamples(r io.Reader) ([]*core.TFExample, error) {
 
 func readExamplesCh(r io.Reader) ([]*core.TFExample, error) {
 	var (
+		ex       *core.TFExample
 		err      error
 		tfReader = core.NewTFRecordReader(r)
 		wg       = sync.WaitGroup{}
@@ -70,11 +71,15 @@ func readExamplesCh(r io.Reader) ([]*core.TFExample, error) {
 		wg.Done()
 	}()
 
-	for ex, ok := w.Read(); ok; ex, ok = w.Read() {
+	for ex, err = w.Read(); err == nil; ex, err = w.Read() {
 		result = append(result, ex)
 	}
 
 	wg.Wait()
+
+	if err == io.EOF {
+		return result, nil
+	}
 	return result, err
 }
 

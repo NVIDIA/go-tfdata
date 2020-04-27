@@ -5,6 +5,7 @@
 package test
 
 import (
+	"io"
 	"testing"
 
 	"github.com/NVIDIA/go-tfdata/test/tassert"
@@ -19,6 +20,10 @@ func TestTransform(t *testing.T) {
 		number    = "number"
 		dupNumber = "dupNumber"
 	)
+	var (
+		sample *core.Sample
+		err    error
+	)
 
 	samplesReader := &testSamplesReader{size: size}
 
@@ -31,12 +36,13 @@ func TestTransform(t *testing.T) {
 	)
 
 	cnt := 0
-	for sample, ok := transformReader.Read(); ok; sample, ok = transformReader.Read() {
+	for sample, err = transformReader.Read(); err == nil; sample, err = transformReader.Read() {
 		tassert.Errorf(t, sample.Entries[number] != nil, "sample expected to have %s entry", number)
 		tassert.Errorf(t, sample.Entries[dupNumber] != nil, "sample expected to have %s entry", dupNumber)
 		cnt++
 	}
 
+	tassert.Errorf(t, err == io.EOF, "expected io.EOF, got %v", err)
 	tassert.Errorf(t, cnt == size, "expected to read %d samples, got %d", size, cnt)
 }
 
@@ -45,6 +51,10 @@ func TestSelection(t *testing.T) {
 		size      = 5000
 		number    = "number"
 		dupNumber = "dupNumber"
+	)
+	var (
+		sample *core.Sample
+		err    error
 	)
 
 	samplesReader := &testSamplesReader{size: size}
@@ -59,11 +69,12 @@ func TestSelection(t *testing.T) {
 	)
 
 	cnt := 0
-	for sample, ok := transformReader.Read(); ok; sample, ok = transformReader.Read() {
+	for sample, err = transformReader.Read(); err == nil; sample, err = transformReader.Read() {
 		tassert.Errorf(t, sample.Entries[number] == nil, "sample should not have %s entry", number)
 		tassert.Errorf(t, sample.Entries[dupNumber] != nil, "sample expected to have %s entry", dupNumber)
 		cnt++
 	}
 
+	tassert.Errorf(t, err == io.EOF, "expected io.EOF, got %v", err)
 	tassert.Errorf(t, cnt == size, "expected to read %d samples, got %d", size, cnt)
 }

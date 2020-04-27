@@ -106,13 +106,20 @@ func (w *TFRecordWriter) WriteMessage(message protoreflect.ProtoMessage) (n int,
 // when ch is closed and empty. WriteMessages doesn't close ch itself.
 // Returns error immediately if occurred, without processing subsequent messages
 func (w *TFRecordWriter) WriteMessages(reader TFExampleReader) error {
-	for ex, ok := reader.Read(); ok; ex, ok = reader.Read() {
+	var (
+		ex  *TFExample
+		err error
+	)
+	for ex, err = reader.Read(); err == nil; ex, err = reader.Read() {
 		_, err := w.WriteMessage(ex)
 		if err != nil {
 			return err
 		}
 	}
-	return nil
+	if err == io.EOF {
+		return nil
+	}
+	return err
 }
 
 // Reads TFExamples from reader asynchronously and writes synchronously to w.Writer
@@ -122,6 +129,7 @@ func (w *TFRecordWriter) WriteMessages(reader TFExampleReader) error {
 func (w *TFRecordWriter) WriteMessagesAsync(reader TFExampleReader, numWorkers int) error {
 	cmn.Assert(numWorkers > 0)
 	ch := make(chan *TFExample)
+	errCh := make(chan error, numWorkers)
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	wg := sync.WaitGroup{}
@@ -131,8 +139,11 @@ func (w *TFRecordWriter) WriteMessagesAsync(reader TFExampleReader, numWorkers i
 		go func() {
 			defer wg.Done()
 			for {
-				ex, ok := reader.Read()
-				if !ok {
+				ex, err := reader.Read()
+				if err != nil {
+					if err != io.EOF {
+						errCh <- err
+					}
 					return
 				}
 				select {
@@ -149,6 +160,7 @@ func (w *TFRecordWriter) WriteMessagesAsync(reader TFExampleReader, numWorkers i
 	go func() {
 		wg.Wait()
 		close(ch)
+		close(errCh)
 	}()
 
 	// Read from ch until all workers are done with reading (then ch gets closed)
@@ -161,6 +173,9 @@ func (w *TFRecordWriter) WriteMessagesAsync(reader TFExampleReader, numWorkers i
 		if err != nil {
 			return err
 		}
+	}
+	for err := range errCh { // if there was no errors from workers, we don't go into this loop
+		return err
 	}
 	return nil
 }

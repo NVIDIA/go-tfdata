@@ -4,10 +4,13 @@
 //
 package core
 
+import "io"
+
 type (
 	// TFExampleReader / TFExampleWriter
+	// Returns io.EOF if there's nothing left to be read
 	TFExampleReader interface {
-		Read() (ex *TFExample, ok bool)
+		Read() (ex *TFExample, err error)
 	}
 
 	TFExampleWriter interface {
@@ -25,8 +28,9 @@ type (
 	}
 
 	// SampleReader / SampleWriter
+	// Returns io.EOF if there's nothing left to be read
 	SampleReader interface {
-		Read() (sample *Sample, ok bool)
+		Read() (sample *Sample, err error)
 	}
 
 	SampleWriter interface {
@@ -55,9 +59,12 @@ func NewTFExampleChannel(bufSize int) *TFExampleChannel {
 	return &TFExampleChannel{ch: make(chan *TFExample, bufSize)}
 }
 
-func (c *TFExampleChannel) Read() (*TFExample, bool) {
+func (c *TFExampleChannel) Read() (*TFExample, error) {
 	ex, ok := <-c.ch
-	return ex, ok
+	if !ok {
+		return ex, io.EOF
+	}
+	return ex, nil
 }
 
 func (c *TFExampleChannel) Write(example *TFExample) error {
@@ -75,9 +82,12 @@ func NewSampleChannel(bufSize int) *SampleChannel {
 	return &SampleChannel{ch: make(chan *Sample, bufSize)}
 }
 
-func (c *SampleChannel) Read() (*Sample, bool) {
-	ex, ok := <-c.ch
-	return ex, ok
+func (c *SampleChannel) Read() (*Sample, error) {
+	sample, ok := <-c.ch
+	if !ok {
+		return sample, io.EOF
+	}
+	return sample, nil
 }
 
 func (c *SampleChannel) Write(sample *Sample) error {

@@ -9,11 +9,11 @@ import (
 	"archive/tar"
 	"bytes"
 	"compress/gzip"
+	"fmt"
 	"io"
 
 	"github.com/NVIDIA/go-tfdata/tfdata/core"
 	"github.com/NVIDIA/go-tfdata/tfdata/internal/cmn"
-	"github.com/golang/glog"
 )
 
 func newTarSeekReader(reader io.ReadSeeker) (*TarSeekReader, error) {
@@ -90,7 +90,7 @@ func (t *TarSeekReader) prepareMeta() error {
 	}
 }
 
-func (t *TarSeekReader) Read() (sample *core.Sample, ok bool) {
+func (t *TarSeekReader) Read() (sample *core.Sample, err error) {
 	t.mtx.Lock()
 	defer t.mtx.Unlock()
 	// iterate until first tar record is ready or EOF
@@ -101,10 +101,9 @@ func (t *TarSeekReader) Read() (sample *core.Sample, ok bool) {
 		case err == io.EOF:
 			cmn.Assert(t.recordsManager.Len() == 0)
 			cmn.Assert(t.recordsMetaManager.Len() == 0)
-			return nil, false
+			return nil, io.EOF
 		case err != nil:
-			glog.Error(err)
-			return nil, false
+			return nil, err
 		case header == nil:
 			continue
 		}
@@ -119,12 +118,10 @@ func (t *TarSeekReader) Read() (sample *core.Sample, ok bool) {
 			n, err := io.Copy(bytes.NewBuffer(buf), t.r)
 
 			if err != nil && err != io.EOF {
-				glog.Error(err)
-				return nil, false
+				return nil, err
 			}
 			if n != header.Size {
-				glog.Errorf("expected to read %d bytes, read %d instead", header.Size, n)
-				return nil, false
+				return nil, fmt.Errorf("expected to read %d bytes, read %d instead", header.Size, n)
 			}
 
 			t.recordsManager.UpdateRecord(name, ext, buf)
@@ -132,7 +129,7 @@ func (t *TarSeekReader) Read() (sample *core.Sample, ok bool) {
 				sample = core.NewSample(name, t.recordsManager.GetRecord(name).Members)
 				t.recordsMetaManager.DeleteRecord(name)
 				t.recordsManager.DeleteRecord(name)
-				return sample, true
+				return sample, nil
 			}
 		}
 	}

@@ -30,13 +30,13 @@ func EmptySamples(reader core.SampleReader) core.SampleReader {
 	return &EmptySamplesReader{Reader: reader}
 }
 
-func (f *EmptySamplesReader) Read() (*core.Sample, bool) {
-	sample, ok := f.Reader.Read()
-	if !ok {
-		return nil, false
+func (f *EmptySamplesReader) Read() (*core.Sample, error) {
+	sample, err := f.Reader.Read()
+	if err != nil {
+		return nil, err
 	}
 	if len(sample.Entries) > 0 {
-		return sample, true
+		return sample, nil
 	}
 	return f.Read()
 }
@@ -46,13 +46,13 @@ func EmptyExamples(reader core.TFExampleReader) core.TFExampleReader {
 	return &EmptyTFExamplesReader{Reader: reader}
 }
 
-func (f *EmptyTFExamplesReader) Read() (*core.TFExample, bool) {
-	ex, ok := f.Reader.Read()
-	if !ok {
-		return nil, false
+func (f *EmptyTFExamplesReader) Read() (*core.TFExample, error) {
+	ex, err := f.Reader.Read()
+	if err != nil {
+		return nil, err
 	}
 	if len(ex.GetFeatures().Feature) > 0 {
-		return ex, true
+		return ex, nil
 	}
 	return f.Read()
 }

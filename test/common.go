@@ -6,6 +6,7 @@ package test
 
 import (
 	"encoding/binary"
+	"io"
 	"sync"
 	"time"
 
@@ -25,21 +26,21 @@ type (
 	}
 )
 
-func (t *testTFExamplesReader) Read() (*core.TFExample, bool) {
+func (t *testTFExamplesReader) Read() (*core.TFExample, error) {
 	t.mtx.Lock()
 	defer t.mtx.Unlock()
 	if t.readCnt == t.size {
-		return nil, false
+		return nil, io.EOF
 	}
 	ex := core.NewTFExample()
 	ex.AddInt(cntEntry, t.readCnt)
 	t.readCnt++
-	return ex, true
+	return ex, nil
 }
 
-func (t *testSamplesReader) Read() (*core.Sample, bool) {
+func (t *testSamplesReader) Read() (*core.Sample, error) {
 	if t.readCnt == t.size {
-		return nil, false
+		return nil, io.EOF
 	}
 
 	buf := make([]byte, 8)
@@ -47,5 +48,5 @@ func (t *testSamplesReader) Read() (*core.Sample, bool) {
 	sample := core.NewSample(time.Now().String())
 	sample.Entries[cntEntry] = buf
 	t.readCnt++
-	return sample, true
+	return sample, nil
 }
