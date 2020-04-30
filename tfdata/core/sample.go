@@ -4,6 +4,8 @@
 //
 package core
 
+const KeyEntry = "__key__"
+
 type (
 	Sample struct {
 		Entries map[string]interface{}

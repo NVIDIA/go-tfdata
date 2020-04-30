@@ -16,7 +16,8 @@ users to extend it in any possible way.
 - `FromTar(io.Reader)` - read Samples from `io.Reader` in Tar format
 - `TransformSamples(transformations)` - transform each `Sample` according to provided transformations (either predeclared in `go-tfdata`
 or provided by a user)
-- `DefaultSampleToTFExample` - default transformation from `Sample` to `TFExample` format
+- `SampleToTFExample(reader, [typesMapping]` - default transformation from `Sample` to `TFExample` format. If typesMapping provided,
+maps sample to TFExample accordingly to types.
 - `TransformTFExamples(transformations)` - transform each `TFExample` according to provided transformations
 - `ToTFRecord(io.Writer)` - write serialized TFExamples to `io.Writer` in TFRecord file format
 - `FilterEmptyExamples(reader)`, `FilterEmptySamples(reader)` - filter reader from empty TFExamples / Samples
@@ -43,8 +44,20 @@ or provided by a user)
 ##### Convert Tar file to TFRecord
 
 ```go
-pipeline := NewPipeline().FromTar(inFile).DefaultSampleToTFExample().ToTFRecord(outFile)
+pipeline := NewPipeline().FromTar(inFile).SampleToTFExample().ToTFRecord(outFile)
 pipeline.Do()
+```
+
+
+##### Convert Tar file to TFRecord, save in TFExample "cls" as int64, "jpeg" as bytes
+
+```go
+pipeline := NewPipeline().FromTar(inFile)
+pipeline.SampleToTFExample(core.TypesMap{
+    "cls": core.FeatureType.INT64,
+    "jpeg": core.FeatureType.BYTES,
+})
+pipeline.ToTFRecord(outFile).Do()
 ```
 
 ##### Convert Tar file to TFRecord, log every 10 TFExamples
@@ -63,7 +76,7 @@ func (l *Logger) Read() (*TFExample, bool) {
 
 pipeline := NewPipeline().WithTFExampleStage(func(reader TFExampleReader) TFExampleReader {
     return &Logger{reader: reader}
-}).FromTar(inFile).DefaultSampleToTFExample().ToTFRecord(outFile)
+}).FromTar(inFile).SampleToTFExample().ToTFRecord(outFile)
 
 pipeline.Do()
 ```
@@ -73,7 +86,7 @@ pipeline.Do()
 ```go
 pipeline := NewPipeline().TransformSamples(
     transform.ExampleSelections(selection.ByKey("image"))
-).FromTarGz(inFile).DefaultSampleToTFExample().ToTFRecord(outFile)
+).FromTarGz(inFile).SampleToTFExample().ToTFRecord(outFile)
 pipeline.Do()
 ```
 
@@ -95,7 +108,7 @@ func (c *FAASClient) Read() (*Sample, bool) {
 
 pipeline := NewPipeline().WithSamplesStage(func(reader SamplesReader) SamplesReader {
     return FAASClient{reader: reader} 
-}).FromTar(inFile).DefaultSampleToTFExample().ToTFRecord(outFile)
+}).FromTar(inFile).SampleToTFExample().ToTFRecord(outFile)
 pipeline.Do()
 ```
 

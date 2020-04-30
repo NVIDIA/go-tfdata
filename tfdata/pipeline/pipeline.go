@@ -100,10 +100,15 @@ func (p *DefaultPipeline) ToTFRecord(w io.Writer, numWorkers ...int) *DefaultPip
 	})
 }
 
-func (p *DefaultPipeline) DefaultSampleToTFExample() *DefaultPipeline {
+// Converts Samples to TFExamples. TypesMap defines what are actual sample types.
+// For each (key, mappedType) pair from TypesMap, TFExample will have feature[key] = value, where
+// value is sample[key] converted into type mappedType.
+// If m is not provided, each entry from value will be converted to BytesList
+// If m provided, but sample has key which is not present in TypesMap, value will be converted to BytesList
+func (p *DefaultPipeline) SampleToTFExample(m ...core.TypesMap) *DefaultPipeline {
 	cmn.Assert(p.sample2ExampleStage == nil)
 	return p.WithSample2ExampleStage(func(sr core.SampleReader) core.TFExampleReader {
-		return transform.NewSamplesToTFExample(sr)
+		return transform.SamplesToTFExample(sr, m...)
 	})
 }
 

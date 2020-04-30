@@ -32,6 +32,7 @@ func newTarGreedyReader(reader io.Reader) *TarGreedyReader {
 			for k, v := range r.Members {
 				sample.Entries[k] = v
 			}
+			sample.Entries[core.KeyEntry] = r.Name
 			tarReader.ch <- sample
 		}
 	}()

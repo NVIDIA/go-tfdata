@@ -5,7 +5,12 @@
 package transform
 
 import (
+	"bytes"
+	"encoding/binary"
+	"math"
+
 	"github.com/NVIDIA/go-tfdata/tfdata/core"
+	"github.com/NVIDIA/go-tfdata/tfdata/internal/cmn"
 	jsoniter "github.com/json-iterator/go"
 )
 
@@ -28,6 +33,11 @@ type (
 	// Default SamplesToTFExamples transformer: put into TFExample each of Sample entries as BytesList
 	SamplesToTFExamplesTransformer struct {
 		reader core.SampleReader
+	}
+
+	SampleToTFExamplesTypesTransformer struct {
+		reader   core.SampleReader
+		typesMap map[string]core.TFFeatureType
 	}
 )
 
@@ -74,23 +84,121 @@ func (t *SamplesTransformer) Read() (*core.Sample, error) {
 	return sample, nil
 }
 
-// NewSamplesToTFExample consumes SampleReader, applies default Sample to TFExample conversion, produces TFExampleReader.
+// SamplesToTFExample consumes SampleReader, applies default Sample to TFExample conversion, produces TFExampleReader.
 // Default Sample to TFExample conversion is put into TFExample each of Sample entries as BytesList
-func NewSamplesToTFExample(reader core.SampleReader) *SamplesToTFExamplesTransformer {
-	return &SamplesToTFExamplesTransformer{reader: reader}
+func SamplesToTFExample(reader core.SampleReader, types ...core.TypesMap) core.TFExampleReader {
+	if len(types) == 0 {
+		return &SamplesToTFExamplesTransformer{reader: reader}
+	}
+	cmn.Assert(len(types) == 1)
+	return &SampleToTFExamplesTypesTransformer{reader: reader, typesMap: types[0]}
 }
 
 func (t *SamplesToTFExamplesTransformer) Read() (*core.TFExample, error) {
-	sample, err := t.reader.Read()
+	var (
+		b      []byte
+		ok     bool
+		err    error
+		sample *core.Sample
+	)
+	sample, err = t.reader.Read()
 	if err != nil {
 		return nil, err
 	}
 
 	example := core.NewTFExample()
 	for k, v := range sample.Entries {
-		b, err := jsoniter.Marshal(v)
-		if err != nil {
-			return nil, err
+		if b, ok = v.([]byte); !ok {
+			b, err = jsoniter.Marshal(v)
+			if err != nil {
+				return nil, err
+			}
+		}
+		example.AddBytes(k, b)
+	}
+	return example, nil
+}
+
+func (t *SampleToTFExamplesTypesTransformer) Read() (*core.TFExample, error) {
+	var (
+		ty     cmn.TFFeatureType
+		sample *core.Sample
+		b      []byte
+		ok     bool
+		err    error
+	)
+	sample, err = t.reader.Read()
+	if err != nil {
+		return nil, err
+	}
+
+	example := core.NewTFExample()
+	for k, v := range sample.Entries {
+		if ty, ok = t.typesMap[k]; !ok {
+			b, err := jsoniter.Marshal(v)
+			if err != nil {
+				return nil, err
+			}
+			example.AddBytes(k, b)
+			continue
+		}
+
+		switch ty.FeatureType() {
+		case cmn.Int64Type:
+			var i int64
+			if i, ok = v.(int64); !ok {
+				i, err = binary.ReadVarint(bytes.NewBuffer(v.([]byte)))
+				if err != nil {
+					return nil, err
+				}
+			}
+			example.AddInt64(k, i)
+			continue
+		case cmn.Int64ListType:
+			var i []int64
+			if i, ok = v.([]int64); !ok {
+				err = binary.Read(bytes.NewBuffer(v.([]byte)), binary.LittleEndian, &i)
+				if err != nil {
+					return nil, err
+				}
+			}
+			example.AddInt64List(k, i)
+			continue
+		case cmn.Float32Type:
+			var i float32
+			if i, ok = v.(float32); !ok {
+				bits := binary.LittleEndian.Uint32(v.([]byte))
+				i = math.Float32frombits(bits)
+			}
+			example.AddFloat(k, i)
+			continue
+		case cmn.Float32ListType:
+			var i []float32
+			if i, ok = v.([]float32); !ok {
+				var ints []uint32
+				err = binary.Read(bytes.NewBuffer(v.([]byte)), binary.LittleEndian, &ints)
+				if err != nil {
+					return nil, err
+				}
+				for _, bits := range ints {
+					i = append(i, math.Float32frombits(bits))
+				}
+			}
+			example.AddFloatList(k, i)
+			continue
+		case cmn.BytesType:
+			example.AddBytes(k, v.([]byte))
+			continue
+		case cmn.BytesListType:
+			example.AddBytesList(k, v.([][]byte))
+			continue
+		}
+
+		if b, ok = v.([]byte); !ok {
+			b, err = jsoniter.Marshal(v)
+			if err != nil {
+				return nil, err
+			}
 		}
 		example.AddBytes(k, b)
 	}

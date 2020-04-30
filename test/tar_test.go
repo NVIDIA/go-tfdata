@@ -28,7 +28,7 @@ func TestTarReader(t *testing.T) {
 
 	i := 0
 	for sample, err = tr.Read(); err == nil; sample, err = tr.Read() {
-		tassert.Errorf(t, len(sample.Entries) == 2, "sample expected to have 2 entries")
+		tassert.Errorf(t, len(sample.Entries) == 3, "sample expected to have 3 entries") // cls, jpg, __key__
 		tassert.Errorf(t, sample.Entries["cls"] != nil, "expected cls to be present")
 		tassert.Errorf(t, sample.Entries["jpg"] != nil, "expected jpg to be present")
 		i++
@@ -52,7 +52,7 @@ func TestTarGzReader(t *testing.T) {
 
 	i := 0
 	for sample, err = tr.Read(); err == nil; sample, err = tr.Read() {
-		tassert.Errorf(t, len(sample.Entries) == 2, "sample expected to have 2 entries")
+		tassert.Errorf(t, len(sample.Entries) == 3, "sample expected to have 3 entries") // cls, jpg, __key__
 		tassert.Errorf(t, sample.Entries["cls"] != nil, "expected cls to be present")
 		tassert.Errorf(t, sample.Entries["jpg"] != nil, "expected jpg to be present")
 		i++
