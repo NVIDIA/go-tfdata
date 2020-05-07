@@ -71,8 +71,8 @@ func (t *TarGreedyReader) prepareRecords() error {
 		case tar.TypeDir:
 			continue
 		case tar.TypeReg:
-			buf := make([]byte, header.Size)
-			n, err := io.Copy(bytes.NewBuffer(buf), t.r)
+			buf := bytes.NewBuffer(make([]byte, 0, header.Size))
+			n, err := io.Copy(buf, t.r)
 			if err != nil && err != io.EOF {
 				return err
 			}
@@ -80,7 +80,7 @@ func (t *TarGreedyReader) prepareRecords() error {
 				return fmt.Errorf("expected to read %d bytes, read %d instead", header.Size, n)
 			}
 
-			t.rm.UpdateRecord(name, ext, buf)
+			t.rm.UpdateRecord(name, ext, buf.Bytes()[:n])
 		}
 	}
 }

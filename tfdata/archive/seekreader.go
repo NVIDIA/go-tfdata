@@ -114,8 +114,8 @@ func (t *TarSeekReader) Read() (sample *core.Sample, err error) {
 		case tar.TypeDir:
 			continue
 		case tar.TypeReg:
-			buf := make([]byte, header.Size)
-			n, err := io.Copy(bytes.NewBuffer(buf), t.r)
+			buf := bytes.NewBuffer(make([]byte, 0, header.Size))
+			n, err := io.Copy(buf, t.r)
 
 			if err != nil && err != io.EOF {
 				return nil, err
@@ -124,7 +124,7 @@ func (t *TarSeekReader) Read() (sample *core.Sample, err error) {
 				return nil, fmt.Errorf("expected to read %d bytes, read %d instead", header.Size, n)
 			}
 
-			t.recordsManager.UpdateRecord(name, ext, buf)
+			t.recordsManager.UpdateRecord(name, ext, buf.Bytes()[:n])
 			if t.recordsMetaManager.GetRecord(name).SameMembers(t.recordsManager.GetRecord(name)) {
 				record := t.recordsManager.GetRecord(name)
 				sample = core.NewSample()
