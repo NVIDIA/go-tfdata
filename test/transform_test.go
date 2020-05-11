@@ -1,7 +1,5 @@
-// Package test contains tests of tfdata package
-//
 // Copyright (c) 2020, NVIDIA CORPORATION. All rights reserved.
-//
+
 package test
 
 import (
@@ -21,7 +19,7 @@ func TestTransform(t *testing.T) {
 		dupNumber = "dupNumber"
 	)
 	var (
-		sample *core.Sample
+		sample core.Sample
 		err    error
 	)
 
@@ -29,16 +27,16 @@ func TestTransform(t *testing.T) {
 
 	transformReader := transform.NewSampleTransformer(samplesReader,
 		transform.RenameTransformation(number, []string{cntEntry}),
-		transform.SampleF(func(sample *core.Sample) *core.Sample {
-			sample.Entries[dupNumber] = sample.Entries[number]
+		transform.SampleF(func(sample core.Sample) core.Sample {
+			sample[dupNumber] = sample[number]
 			return sample
 		}),
 	)
 
 	cnt := 0
 	for sample, err = transformReader.Read(); err == nil; sample, err = transformReader.Read() {
-		tassert.Errorf(t, sample.Entries[number] != nil, "sample expected to have %s entry", number)
-		tassert.Errorf(t, sample.Entries[dupNumber] != nil, "sample expected to have %s entry", dupNumber)
+		tassert.Errorf(t, sample[number] != nil, "sample expected to have %s entry", number)
+		tassert.Errorf(t, sample[dupNumber] != nil, "sample expected to have %s entry", dupNumber)
 		cnt++
 	}
 
@@ -53,7 +51,7 @@ func TestSelection(t *testing.T) {
 		dupNumber = "dupNumber"
 	)
 	var (
-		sample *core.Sample
+		sample core.Sample
 		err    error
 	)
 
@@ -61,8 +59,8 @@ func TestSelection(t *testing.T) {
 
 	transformReader := transform.NewSampleTransformer(samplesReader,
 		transform.RenameTransformation(number, []string{cntEntry}),
-		transform.SampleF(func(sample *core.Sample) *core.Sample {
-			sample.Entries[dupNumber] = sample.Entries[number]
+		transform.SampleF(func(sample core.Sample) core.Sample {
+			sample[dupNumber] = sample[number]
 			return sample
 		}),
 		transform.SampleSelections(selection.ByKey(dupNumber)),
@@ -70,8 +68,8 @@ func TestSelection(t *testing.T) {
 
 	cnt := 0
 	for sample, err = transformReader.Read(); err == nil; sample, err = transformReader.Read() {
-		tassert.Errorf(t, sample.Entries[number] == nil, "sample should not have %s entry", number)
-		tassert.Errorf(t, sample.Entries[dupNumber] != nil, "sample expected to have %s entry", dupNumber)
+		tassert.Errorf(t, sample[number] == nil, "sample should not have %s entry", number)
+		tassert.Errorf(t, sample[dupNumber] != nil, "sample expected to have %s entry", dupNumber)
 		cnt++
 	}
 

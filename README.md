@@ -4,13 +4,15 @@ The `go-tfdata` is a Go library helping to work with tar/tgz archives and files 
 [TFRecord and tf.Example formats](https://www.tensorflow.org/tutorials/load_data/tfrecord), including converting
 TAR files to TFRecord files.
 It provides interfaces and their default implementations on each intermediate step between tar and TFRecord format.
-Additionally it includes easy to use utilities to convert and augment data in intermediate steps.  
+Additionally, it includes easy to use utilities to convert and augment data in intermediate steps.  
 
 The library is designed with simplicity, speed and extensibility in mind. The goal is not to support multiple, complicated
 communication protocols for remote data handling or complex algorithms implementations, it's rather giving ability for
 users to extend it in any possible way.  
 
-### Available Commands
+[Full documentation](https://pkg.go.dev/github.com/NVIDIA/go-tfdata)
+
+## Available Commands
 
 `go-tfdata` provides default implementations for manipulating tar and TFRecord files. It includes:
 
@@ -23,11 +25,11 @@ maps sample to TFExample accordingly to types.
 - `ToTFRecord(io.Writer)` - write serialized TFExamples to `io.Writer` in TFRecord file format
 - `FilterEmptyExamples(reader)`, `FilterEmptySamples(reader)` - filter reader from empty TFExamples / Samples
 
-### Available transformations and selections
+## Available transformations and selections
 
 `go-tfdata` provides basic Samples and TFExamples transformations and selections, which can be easily applied to the data
 
-#### Selections
+### Selections
 
 - `ByKey(key)` - selects entry which key equals to `key`
 - `ByKeyValue(key, value)` - selects entry which key equals `key` and value equals `value`
@@ -35,15 +37,15 @@ maps sample to TFExample accordingly to types.
 - `BySampleF(f)`, `ByExampleF(f)` - selects entries which keys are in subset returned by function `f`
 - TBA...
 
-#### Transformations
+### Transformations
 
 - `RenameTransformation(dest string, src []string)` - renames `src` fields into `dest` field
-- `SampleF(f func(*core.Sample) *core.Sample)` - transforms Sample based on specified function `f`
+- `SampleF(f func(core.Sample) core.Sample)` - transforms Sample based on specified function `f`
 - `TFExampleF(f func(*core.TFExample) *core.TFExample)` - transforms TFExample based on specified function `f`
 
-### Examples
+## Examples
 
-##### Convert Tar file to TFRecord
+#### Convert Tar file to TFRecord
 
 ```go
 pipeline := NewPipeline().FromTar(inFile).SampleToTFExample().ToTFRecord(outFile)
@@ -51,7 +53,7 @@ pipeline.Do()
 ```
 
 
-##### Convert Tar file to TFRecord, save in TFExample "cls" as int64, "jpeg" as bytes
+#### Convert Tar file to TFRecord, save in TFExample "cls" as int64, "jpeg" as bytes
 
 ```go
 pipeline := NewPipeline().FromTar(inFile)
@@ -62,7 +64,7 @@ pipeline.SampleToTFExample(core.TypesMap{
 pipeline.ToTFRecord(outFile).Do()
 ```
 
-##### Convert Tar file to TFRecord, log every 10 TFExamples
+#### Convert Tar file to TFRecord, log every 10 TFExamples
 
 ```go
 type Logger struct {
@@ -83,7 +85,7 @@ pipeline := NewPipeline().WithTFExampleStage(func(reader TFExampleReader) TFExam
 pipeline.Do()
 ```
 
-##### Convert TarGz file to TFRecord, select only "image" entries from Samples
+#### Convert TarGz file to TFRecord, select only "image" entries from Samples
 
 ```go
 pipeline := NewPipeline().TransformSamples(
@@ -92,7 +94,7 @@ pipeline := NewPipeline().TransformSamples(
 pipeline.Do()
 ```
 
-##### Convert Tar file to TFRecord, transform Samples in FAAS service
+#### Convert Tar file to TFRecord, transform Samples in FAAS service
 
 ```go
 type FAASClient struct { 
@@ -100,7 +102,7 @@ type FAASClient struct {
     ...
 }
 
-func (c *FAASClient) Read() (*Sample, bool) {
+func (c *FAASClient) Read() (Sample, bool) {
     sample, ok := c.reader.Read()
     if !ok { return nil, false }
     id := c.Send(sample)
@@ -116,9 +118,9 @@ pipeline.Do()
 
 To see fully working implementation of some examples see `go-tfdata/tests` package.
 
-### Internals
+## Internals
 
-#### Pipeline
+### Pipeline
 
 `pipeline` is abstraction for TAR-to-TFRecord process. `pipeline` is made of `stages`. Default pipeline implementation has 5 stages:
 
@@ -126,7 +128,7 @@ To see fully working implementation of some examples see `go-tfdata/tests` packa
 | --- | --- | --- | --- |  
 | `TarStage` | - | `SamplesReader` | Yes |  
 | `SamplesStage` | `SamplesReader` | `SamplesReader` | No |  
-| `Sample2ExampleStage` | `SamplesReader` | `TFExampleReader` | Yes |  
+| `Sample2TFExampleStage` | `SamplesReader` | `TFExampleReader` | Yes |  
 | `TFExamplesStage` | `TFExampleReader` | `TFExampleReader` | No |  
 | `TFRecordStage` | `TFExampleReader` | - | No |  
 
@@ -136,7 +138,7 @@ decides to consume a TFExample
 Pipeline is high-level abstraction and can be replaced, extended or limited.
 For each stage, default implementation can be used (or none at all for optional stages), or custom implementation can be provided by a user via `pipeline.With[STAGE]` method
 
-#### Readers
+### Readers
 
 There exists two types of readers interfaces - `SamplesReader`, `TFExamplesReader`. Their methods:
 ```
@@ -147,7 +149,7 @@ TFExampleReader interface {
 
 ```
 SampleReader interface {
-    Read() (sample *Sample, ok bool)
+    Read() (sample Sample, ok bool)
 }
 ```
 
@@ -155,7 +157,7 @@ It's up to Reader implementation how it behaves on creation or `Read` calls. It 
 `Read` method is called (lazy) or Reader can drain internal Reader and do transformations immediately. It can as well 
 prefetch part of internal Reader data. Each of approaches has it's advantages and should be considered per use-case.
 
-#### TFExample
+### TFExample
 
 TFExample format is based on [TensorFlow](https://www.tensorflow.org/) [example.proto](https://github.com/tensorflow/tensorflow/tree/master/tensorflow/core/example)
 files. Thanks to [Go Protobuf API v2](https://blog.golang.org/protobuf-apiv2), a structure of TFExamples in TFRecord files is determined

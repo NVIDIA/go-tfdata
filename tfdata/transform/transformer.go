@@ -1,7 +1,5 @@
-// Package tfdata provides interfaces to interact with TFRecord files and TFExamples.
-//
 // Copyright (c) 2020, NVIDIA CORPORATION. All rights reserved.
-//
+
 package transform
 
 import (
@@ -73,7 +71,7 @@ func NewSampleTransformer(reader core.SampleReader, ts ...SampleTransformation) 
 	}
 }
 
-func (t *SamplesTransformer) Read() (*core.Sample, error) {
+func (t *SamplesTransformer) Read() (core.Sample, error) {
 	sample, err := t.reader.Read()
 	if err != nil {
 		return nil, err
@@ -99,7 +97,7 @@ func (t *SamplesToTFExamplesTransformer) Read() (*core.TFExample, error) {
 		b      []byte
 		ok     bool
 		err    error
-		sample *core.Sample
+		sample core.Sample
 	)
 	sample, err = t.reader.Read()
 	if err != nil {
@@ -107,7 +105,7 @@ func (t *SamplesToTFExamplesTransformer) Read() (*core.TFExample, error) {
 	}
 
 	example := core.NewTFExample()
-	for k, v := range sample.Entries {
+	for k, v := range sample {
 		if b, ok = v.([]byte); !ok {
 			b, err = jsoniter.Marshal(v)
 			if err != nil {
@@ -122,7 +120,7 @@ func (t *SamplesToTFExamplesTransformer) Read() (*core.TFExample, error) {
 func (t *SampleToTFExamplesTypesTransformer) Read() (*core.TFExample, error) {
 	var (
 		ty     cmn.TFFeatureType
-		sample *core.Sample
+		sample core.Sample
 		b      []byte
 		ok     bool
 		err    error
@@ -133,7 +131,7 @@ func (t *SampleToTFExamplesTypesTransformer) Read() (*core.TFExample, error) {
 	}
 
 	example := core.NewTFExample()
-	for k, v := range sample.Entries {
+	for k, v := range sample {
 		if ty, ok = t.typesMap[k]; !ok {
 			b, err := jsoniter.Marshal(v)
 			if err != nil {

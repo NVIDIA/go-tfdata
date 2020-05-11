@@ -1,7 +1,5 @@
-// Package test contains tests of tfdata package
-//
 // Copyright (c) 2020, NVIDIA CORPORATION. All rights reserved.
-//
+
 package test
 
 import (
@@ -16,7 +14,7 @@ import (
 
 func TestTarReader(t *testing.T) {
 	var (
-		sample *core.Sample
+		sample core.Sample
 		err    error
 	)
 
@@ -28,9 +26,9 @@ func TestTarReader(t *testing.T) {
 
 	i := 0
 	for sample, err = tr.Read(); err == nil; sample, err = tr.Read() {
-		tassert.Errorf(t, len(sample.Entries) == 3, "sample expected to have 3 entries") // cls, jpg, __key__
-		tassert.Errorf(t, sample.Entries["cls"] != nil, "expected cls to be present")
-		tassert.Errorf(t, sample.Entries["jpg"] != nil, "expected jpg to be present")
+		tassert.Errorf(t, len(sample) == 3, "sample expected to have 3 entries") // cls, jpg, __key__
+		tassert.Errorf(t, sample["cls"] != nil, "expected cls to be present")
+		tassert.Errorf(t, sample["jpg"] != nil, "expected jpg to be present")
 		i++
 	}
 
@@ -40,7 +38,7 @@ func TestTarReader(t *testing.T) {
 
 func TestTarMnistReader(t *testing.T) {
 	var (
-		sample *core.Sample
+		sample core.Sample
 		err    error
 	)
 
@@ -52,12 +50,12 @@ func TestTarMnistReader(t *testing.T) {
 
 	i := 0
 	for sample, err = tr.Read(); err == nil; sample, err = tr.Read() {
-		tassert.Errorf(t, len(sample.Entries) == 3, "sample expected to have 3 entries") // cls, img, __key__
-		tassert.Errorf(t, sample.Entries["cls"] != nil, "expected cls to be present")
-		clsBytes := sample.Entries["cls"].([]byte)
+		tassert.Errorf(t, len(sample) == 3, "sample expected to have 3 entries") // cls, img, __key__
+		tassert.Errorf(t, sample["cls"] != nil, "expected cls to be present")
+		clsBytes := sample["cls"].([]byte)
 		tassert.Errorf(t, len(clsBytes) == 1, "MNIST class should be a single byte")
 		tassert.Errorf(t, clsBytes[0] >= '0' && clsBytes[0] <= '9', "MNIST class should be between 0 and 9")
-		tassert.Errorf(t, sample.Entries["img"] != nil, "expected jpg to be present")
+		tassert.Errorf(t, sample["img"] != nil, "expected jpg to be present")
 
 		i++
 	}
@@ -68,7 +66,7 @@ func TestTarMnistReader(t *testing.T) {
 
 func TestTarGzReader(t *testing.T) {
 	var (
-		sample *core.Sample
+		sample core.Sample
 		err    error
 	)
 
@@ -80,9 +78,9 @@ func TestTarGzReader(t *testing.T) {
 
 	i := 0
 	for sample, err = tr.Read(); err == nil; sample, err = tr.Read() {
-		tassert.Errorf(t, len(sample.Entries) == 3, "sample expected to have 3 entries") // cls, jpg, __key__
-		tassert.Errorf(t, sample.Entries["cls"] != nil, "expected cls to be present")
-		tassert.Errorf(t, sample.Entries["jpg"] != nil, "expected jpg to be present")
+		tassert.Errorf(t, len(sample) == 3, "sample expected to have 3 entries") // cls, jpg, __key__
+		tassert.Errorf(t, sample["cls"] != nil, "expected cls to be present")
+		tassert.Errorf(t, sample["jpg"] != nil, "expected jpg to be present")
 		i++
 	}
 

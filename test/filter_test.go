@@ -1,7 +1,5 @@
-// Package test contains tests of tfdata package
-//
 // Copyright (c) 2020, NVIDIA CORPORATION. All rights reserved.
-//
+
 package test
 
 import (
@@ -19,7 +17,7 @@ import (
 func TestFilter(t *testing.T) {
 	const size = 5000
 	var (
-		sample *core.Sample
+		sample core.Sample
 		err    error
 	)
 
@@ -39,8 +37,8 @@ func TestFilter(t *testing.T) {
 
 	cnt := 0
 	for sample, err = filterTransformReader.Read(); err == nil; sample, err = filterTransformReader.Read() {
-		tassert.Fatalf(t, sample.Entries[cntEntry] != nil, "sample should have %s entry", cntEntry)
-		tassert.Fatalf(t, len(sample.Entries) == 1, "sample expected to have only %s entry: %v", cntEntry, sample.Entries)
+		tassert.Fatalf(t, sample[cntEntry] != nil, "sample should have %s entry", cntEntry)
+		tassert.Fatalf(t, len(sample) == 1, "sample expected to have only %s entry: %v", cntEntry, sample)
 		cnt++
 	}
 

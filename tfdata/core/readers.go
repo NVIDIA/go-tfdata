@@ -1,14 +1,11 @@
-// Package tfdata provides interfaces to interact with TFRecord files and TFExamples.
-//
 // Copyright (c) 2020, NVIDIA CORPORATION. All rights reserved.
-//
+
 package core
 
 import "io"
 
 type (
-	// TFExampleReader / TFExampleWriter
-	// Returns io.EOF if there's nothing left to be read
+	// TFExampleReader returns io.EOF if there's nothing left to be read
 	TFExampleReader interface {
 		Read() (ex *TFExample, err error)
 	}
@@ -27,14 +24,13 @@ type (
 		ch chan *TFExample
 	}
 
-	// SampleReader / SampleWriter
-	// Returns io.EOF if there's nothing left to be read
+	// SampleReader returns io.EOF if there's nothing left to be read
 	SampleReader interface {
-		Read() (sample *Sample, err error)
+		Read() (sample Sample, err error)
 	}
 
 	SampleWriter interface {
-		Write(s *Sample) error
+		Write(s Sample) error
 		Close()
 	}
 
@@ -43,8 +39,9 @@ type (
 		SampleWriter
 	}
 
+	// SampleChannel is simple implementation of SampleReader
 	SampleChannel struct {
-		ch chan *Sample
+		ch chan Sample
 	}
 )
 
@@ -79,10 +76,10 @@ func (c *TFExampleChannel) Close() {
 // SampleReaders / SampleWriters
 
 func NewSampleChannel(bufSize int) *SampleChannel {
-	return &SampleChannel{ch: make(chan *Sample, bufSize)}
+	return &SampleChannel{ch: make(chan Sample, bufSize)}
 }
 
-func (c *SampleChannel) Read() (*Sample, error) {
+func (c *SampleChannel) Read() (Sample, error) {
 	sample, ok := <-c.ch
 	if !ok {
 		return sample, io.EOF
@@ -90,7 +87,7 @@ func (c *SampleChannel) Read() (*Sample, error) {
 	return sample, nil
 }
 
-func (c *SampleChannel) Write(sample *Sample) error {
+func (c *SampleChannel) Write(sample Sample) error {
 	c.ch <- sample
 	return nil
 }

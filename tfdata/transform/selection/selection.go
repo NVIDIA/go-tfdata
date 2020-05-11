@@ -1,7 +1,6 @@
-// Package selection provides implementation of tfdata.Transformation
-//
 // Copyright (c) 2020, NVIDIA CORPORATION. All rights reserved.
-//
+
+// Package selection provides implementation of tfdata.Transformation
 package selection
 
 import (
@@ -14,7 +13,7 @@ import (
 type (
 	Sample interface {
 		// Return subset of keys to select from Sample
-		SelectSample(*core.Sample) []string
+		SelectSample(core.Sample) []string
 	}
 
 	Example interface {
@@ -29,7 +28,7 @@ type (
 
 	// Applies f to each sample and selects returned keys subset
 	SampleF struct {
-		f func(*core.Sample) []string
+		f func(core.Sample) []string
 	}
 
 	// Applies f to each example and selects returned keys subset
@@ -69,9 +68,9 @@ func BySubstring(substring string) *Key {
 	return &Key{substring: substring}
 }
 
-func (s *Key) SelectSample(sample *core.Sample) []string {
+func (s *Key) SelectSample(sample core.Sample) []string {
 	res := make([]string, 0)
-	for k := range sample.Entries {
+	for k := range sample {
 		if s.keyMatches(k) {
 			res = append(res, k)
 		}
@@ -97,11 +96,11 @@ func (s *Key) keyMatches(key string) bool {
 }
 
 // Select subset of Sample's entries returned by a function
-func BySampleF(f func(*core.Sample) []string) *SampleF {
+func BySampleF(f func(core.Sample) []string) *SampleF {
 	return &SampleF{f: f}
 }
 
-func (s *SampleF) SelectSample(sample *core.Sample) []string {
+func (s *SampleF) SelectSample(sample core.Sample) []string {
 	return s.f(sample)
 }
 
@@ -119,9 +118,9 @@ func ByKeyValue(key string, value interface{}) *KeyValue {
 	return &KeyValue{key: key, value: value}
 }
 
-func (s *KeyValue) SelectSample(sample *core.Sample) []string {
+func (s *KeyValue) SelectSample(sample core.Sample) []string {
 	res := make([]string, 0)
-	for k, v := range sample.Entries {
+	for k, v := range sample {
 		if k == s.key && reflect.DeepEqual(v, s.value) {
 			res = append(res, k)
 		}

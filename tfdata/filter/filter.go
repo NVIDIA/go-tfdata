@@ -1,6 +1,6 @@
-// Package filter provides implementation of Readers with filter functionality.
 // Copyright (c) 2020, NVIDIA CORPORATION. All rights reserved.
-//
+
+// Package filter provides implementation of Readers with filter functionality.
 package filter
 
 import (
@@ -29,7 +29,7 @@ func EmptySamples(reader core.SampleReader) core.SampleReader {
 	return &EmptySamplesReader{Reader: reader}
 }
 
-func (f *EmptySamplesReader) Read() (*core.Sample, error) {
+func (f *EmptySamplesReader) Read() (core.Sample, error) {
 	sample, err := f.Reader.Read()
 	if err != nil {
 		return nil, err
@@ -56,11 +56,11 @@ func (f *EmptyTFExamplesReader) Read() (*core.TFExample, error) {
 	return f.Read()
 }
 
-func isSampleEmpty(sample *core.Sample) bool {
-	if len(sample.Entries) == 0 {
+func isSampleEmpty(sample core.Sample) bool {
+	if len(sample) == 0 {
 		return true
 	}
-	if len(sample.Entries) == 1 && sample.Entries[core.KeyEntry] != nil {
+	if len(sample) == 1 && sample[core.KeyEntry] != nil {
 		return true
 	}
 

@@ -1,7 +1,6 @@
-// Package tassert provides tests assertions.
-//
 // Copyright (c) 2020, NVIDIA CORPORATION. All rights reserved.
-//
+
+// Package tassert provides tests assertions.
 package tassert
 
 import (

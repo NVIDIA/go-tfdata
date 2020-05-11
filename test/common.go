@@ -1,7 +1,6 @@
-// Package test contains tests of tfdata package
-//
 // Copyright (c) 2020, NVIDIA CORPORATION. All rights reserved.
-//
+
+// Package test contains tests of tfdata package
 package test
 
 import (
@@ -37,7 +36,7 @@ func (t *testTFExamplesReader) Read() (*core.TFExample, error) {
 	return ex, nil
 }
 
-func (t *testSamplesReader) Read() (*core.Sample, error) {
+func (t *testSamplesReader) Read() (core.Sample, error) {
 	if t.readCnt == t.size {
 		return nil, io.EOF
 	}
@@ -45,7 +44,7 @@ func (t *testSamplesReader) Read() (*core.Sample, error) {
 	buf := make([]byte, 8)
 	binary.PutVarint(buf, int64(t.readCnt))
 	sample := core.NewSample()
-	sample.Entries[cntEntry] = buf
+	sample[cntEntry] = buf
 	t.readCnt++
 	return sample, nil
 }

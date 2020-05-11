@@ -1,7 +1,5 @@
-// Package archive contains tools for transition between TAR files and SampleReader
-//
 // Copyright (c) 2020, NVIDIA CORPORATION. All rights reserved.
-//
+
 package archive
 
 import (
@@ -89,7 +87,7 @@ func (t *TarSeekReader) prepareMeta() error {
 	}
 }
 
-func (t *TarSeekReader) Read() (sample *core.Sample, err error) {
+func (t *TarSeekReader) Read() (sample core.Sample, err error) {
 	t.mtx.Lock()
 	defer t.mtx.Unlock()
 	// iterate until first tar record is ready or EOF
@@ -128,9 +126,9 @@ func (t *TarSeekReader) Read() (sample *core.Sample, err error) {
 				record := t.recordsManager.GetRecord(name)
 				sample = core.NewSample()
 				for k, v := range record.Members {
-					sample.Entries[k] = v
+					sample[k] = v
 				}
-				sample.Entries[core.KeyEntry] = record.Name
+				sample[core.KeyEntry] = record.Name
 				t.recordsMetaManager.DeleteRecord(name)
 				t.recordsManager.DeleteRecord(name)
 				return sample, nil

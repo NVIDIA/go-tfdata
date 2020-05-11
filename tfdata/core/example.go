@@ -1,7 +1,5 @@
-// Package tfdata provides interfaces to interact with TFRecord files and TFExamples.
-//
 // Copyright (c) 2020, NVIDIA CORPORATION. All rights reserved.
-//
+
 package core
 
 import (
@@ -29,6 +27,7 @@ type (
 		FeatureType() int
 	}
 
+	// TFFeatureEnum represents types supported by TensorFlow
 	TFFeatureEnum struct {
 		INT64       *cmn.TFFeatureInt
 		INT64LIST   *cmn.TFFeatureIntList

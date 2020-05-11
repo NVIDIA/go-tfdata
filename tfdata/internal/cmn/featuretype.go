@@ -1,7 +1,5 @@
-// Package cmn provides common low-level utilities for tfdata module
-/*
- * Copyright (c) 2020, NVIDIA CORPORATION. All rights reserved.
- */
+// Copyright (c) 2020, NVIDIA CORPORATION. All rights reserved.
+
 package cmn
 
 type (

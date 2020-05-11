@@ -1,7 +1,5 @@
-// Package archive contains tools for transition between TAR files and SampleReader
-//
 // Copyright (c) 2020, NVIDIA CORPORATION. All rights reserved.
-//
+
 package archive
 
 import (
@@ -18,7 +16,7 @@ func newTarGreedyReader(reader io.Reader) *TarGreedyReader {
 	tarReader := &TarGreedyReader{
 		rm: NewRecordsManager(),
 		r:  tar.NewReader(reader),
-		ch: make(chan *core.Sample, 100),
+		ch: make(chan core.Sample, 100),
 	}
 
 	go func() {
@@ -30,9 +28,9 @@ func newTarGreedyReader(reader io.Reader) *TarGreedyReader {
 		for _, r := range tarReader.rm.GetRecords() {
 			sample := core.NewSample()
 			for k, v := range r.Members {
-				sample.Entries[k] = v
+				sample[k] = v
 			}
-			sample.Entries[core.KeyEntry] = r.Name
+			sample[core.KeyEntry] = r.Name
 			tarReader.ch <- sample
 		}
 	}()
@@ -85,7 +83,7 @@ func (t *TarGreedyReader) prepareRecords() error {
 	}
 }
 
-func (t *TarGreedyReader) Read() (*core.Sample, error) {
+func (t *TarGreedyReader) Read() (core.Sample, error) {
 	sample, ok := <-t.ch
 	if !ok {
 		return sample, io.EOF

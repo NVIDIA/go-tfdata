@@ -1,7 +1,6 @@
-// Package pipeline provides abstraction of pipeline and stages. It is basic tool to convert TAR/TAR GZ file into TFRecord file.
-//
 // Copyright (c) 2020, NVIDIA CORPORATION. All rights reserved.
-//
+
+// Package pipeline provides abstraction of pipeline and stages. It is a basic tool to convert TAR/TAR GZ file into TFRecord file.
 package pipeline
 
 import (

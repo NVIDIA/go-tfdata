@@ -1,7 +1,6 @@
-// Package transform provides implementation of tfdata.Transformation
-//
 // Copyright (c) 2020, NVIDIA CORPORATION. All rights reserved.
-//
+
+//Package transform provides implementation of tfdata.Transformation
 package transform
 
 import (
@@ -15,7 +14,7 @@ type (
 	}
 
 	SampleTransformation interface {
-		TransformSample(s *core.Sample) *core.Sample
+		TransformSample(s core.Sample) core.Sample
 	}
 
 	// Sample transformation based on selections. Result is union of selections
@@ -38,7 +37,7 @@ type (
 
 	// Transformation based on function
 	SampleFuncTransformation struct {
-		f func(*core.Sample) *core.Sample
+		f func(core.Sample) core.Sample
 	}
 
 	// Transformation based on function
@@ -56,10 +55,10 @@ func RenameTransformation(dest string, src []string) *Rename {
 	return &Rename{src: src, dest: dest}
 }
 
-func (c *Rename) TransformSample(sample *core.Sample) *core.Sample {
+func (c *Rename) TransformSample(sample core.Sample) core.Sample {
 	for _, src := range c.src {
-		if val, ok := sample.Entries[src]; ok {
-			sample.Entries[c.dest] = val
+		if val, ok := sample[src]; ok {
+			sample[c.dest] = val
 		}
 	}
 
@@ -80,7 +79,7 @@ func (t ID) TransformTFExample(ex *core.TFExample) *core.TFExample {
 	return ex
 }
 
-func (t ID) TransformSample(s *core.Sample) *core.Sample {
+func (t ID) TransformSample(s core.Sample) core.Sample {
 	return s
 }
 
@@ -100,7 +99,7 @@ func (s *ExampleSelectionsTransformation) TransformTFExample(ex *core.TFExample)
 	return ex
 }
 
-func (s *SampleSelectionsTransformation) TransformSample(sample *core.Sample) *core.Sample {
+func (s *SampleSelectionsTransformation) TransformSample(sample core.Sample) core.Sample {
 	keysSubset := make(map[string]struct{})
 	for _, selection := range s.selections {
 		for _, key := range selection.SelectSample(sample) {
@@ -108,9 +107,9 @@ func (s *SampleSelectionsTransformation) TransformSample(sample *core.Sample) *c
 		}
 	}
 
-	for k := range sample.Entries {
+	for k := range sample {
 		if _, ok := keysSubset[k]; !ok {
-			delete(sample.Entries, k)
+			delete(sample, k)
 		}
 	}
 	return sample
@@ -126,11 +125,11 @@ func ExampleSelections(s ...selection.Example) *ExampleSelectionsTransformation 
 	return &ExampleSelectionsTransformation{selections: s}
 }
 
-func SampleF(f func(*core.Sample) *core.Sample) *SampleFuncTransformation {
+func SampleF(f func(core.Sample) core.Sample) *SampleFuncTransformation {
 	return &SampleFuncTransformation{f: f}
 }
 
-func (t *SampleFuncTransformation) TransformSample(sample *core.Sample) *core.Sample {
+func (t *SampleFuncTransformation) TransformSample(sample core.Sample) core.Sample {
 	return t.f(sample)
 }
 

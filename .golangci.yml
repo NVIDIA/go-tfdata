@@ -34,15 +34,6 @@ linters-settings:
   govet:
     disable:
       - shadow # reports a lot of false-positives and conflicts with other linters
-#    settings:
-#      printf: # analyzer name, run `go tool vet help` to see all analyzers
-#        funcs: # run `go tool vet help printf` to see available settings for `printf` analyzer
-#          - (github.com/NVIDIA/aistore/3rdparty/glog).Infof
-#          - (github.com/NVIDIA/aistore/3rdparty/glog).Warningf
-#          - (github.com/NVIDIA/aistore/3rdparty/glog).Errorf
-#          - (github.com/NVIDIA/aistore/3rdparty/glog).Fatalf
-#          - (github.com/NVIDIA/tutils/tassert).Errorf
-#          - (github.com/NVIDIA/tutils/tassert).Fatalf
   golint:
     min-confidence: 0
   errcheck:
@@ -74,6 +65,8 @@ issues:
   exclude-rules:
     - linters: errcheck
       text: "Error return value of" # ignores 'error return value of ... is unchecked'
+    - linters: golint
+      text: "Example_"
 
   # Set to 0 to disable limit
   max-same-issues: 0

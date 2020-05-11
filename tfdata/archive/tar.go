@@ -1,7 +1,6 @@
-// Package archive contains tools for transition between TAR files and SampleReader
-//
 // Copyright (c) 2020, NVIDIA CORPORATION. All rights reserved.
-//
+
+// Package archive contains tools for transition between TAR files and SampleReader.
 package archive
 
 import (
@@ -34,7 +33,7 @@ type (
 	TarGreedyReader struct {
 		rm RecordsManager
 		r  *tar.Reader
-		ch chan *core.Sample
+		ch chan core.Sample
 	}
 )
 

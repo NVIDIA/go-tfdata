@@ -1,7 +1,5 @@
-// Package tfdata provides interface to interact with TFRecord files and TExamples
-//
 // Copyright (c) 2020, NVIDIA CORPORATION. All rights reserved.
-//
+
 package core
 
 import (
@@ -24,6 +22,7 @@ type (
 		WriteMessage(protobuf.Message) (n int, err error)
 		WriteExample(*TFExample) (n int, err error)
 
+		// WriteMessages reads and writes TFExamples from reader until io.EOF
 		WriteMessages(reader TFExampleReader) error
 	}
 
