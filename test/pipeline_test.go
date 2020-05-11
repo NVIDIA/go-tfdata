@@ -1,8 +1,7 @@
-//// Package test contains tests of tfdata package
+// Package test contains tests of tfdata package
 //
 // Copyright (c) 2020, NVIDIA CORPORATION. All rights reserved.
 //
-
 package test
 
 import (
@@ -43,10 +42,11 @@ func TestSmallPipeline(t *testing.T) {
 	// declare that TFExamples should be written to sinkFd in TFRecord format
 	p.ToTFRecord(sinkFd)
 	// execute the pipeline
-	p.Do()
+	err = p.Do()
+	tassert.CheckFatal(t, err)
 
-	sourceFd.Close()
-	sinkFd.Close()
+	tassert.CheckFatal(t, sourceFd.Close())
+	tassert.CheckFatal(t, sinkFd.Close())
 
 	sinkFd, err = os.Open(destPath)
 	tassert.CheckFatal(t, err)
@@ -83,10 +83,11 @@ func TestSmallPipelineWithSampleTFExampleTypesMapping(t *testing.T) {
 		"cls":  core.FeatureType.INT64,
 	})
 	// declare that TFExamples should be written to sinkFd in TFRecord format
-	p.ToTFRecord(sinkFd).Do()
+	err = p.ToTFRecord(sinkFd).Do()
+	tassert.CheckFatal(t, err)
 
-	sourceFd.Close()
-	sinkFd.Close()
+	tassert.CheckFatal(t, sourceFd.Close())
+	tassert.CheckFatal(t, sinkFd.Close())
 
 	sinkFd, err = os.Open(destPath)
 	tassert.CheckFatal(t, err)
@@ -119,10 +120,11 @@ func TestSmallPipelineAsync(t *testing.T) {
 	p.FromTar(sourceFd)
 	p.SampleToTFExample()
 	p.ToTFRecord(sinkFd, 8)
-	p.Do()
+	err = p.Do()
+	tassert.CheckFatal(t, err)
 
-	sourceFd.Close()
-	sinkFd.Close()
+	tassert.CheckFatal(t, sourceFd.Close())
+	tassert.CheckFatal(t, sinkFd.Close())
 
 	sinkFd, err = os.Open(destPath)
 	tassert.CheckFatal(t, err)
@@ -165,14 +167,15 @@ func TestPipeline(t *testing.T) {
 		// select only "image" entry from TFExample
 		transform.ExampleSelections(selection.ByKey("image")))
 	// filter empty Examples: those which didn't have "image" entry
-	p.FilterEmptyExamples()
+	p.FilterEmptyTFExamples()
 	// write Examples to sinkFd in TFRecord format
 	p.ToTFRecord(sinkFd)
 	// execute the pipeline
-	p.Do()
+	err = p.Do()
+	tassert.CheckFatal(t, err)
 
-	sourceFd.Close()
-	sinkFd.Close()
+	tassert.CheckFatal(t, sourceFd.Close())
+	tassert.CheckFatal(t, sinkFd.Close())
 
 	sinkFd, err = os.Open(destPath)
 	tassert.CheckFatal(t, err)

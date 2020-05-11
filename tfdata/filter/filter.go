@@ -1,5 +1,4 @@
-// Package filter provides implementation of Readers with filter functionality
-//
+// Package filter provides implementation of Readers with filter functionality.
 // Copyright (c) 2020, NVIDIA CORPORATION. All rights reserved.
 //
 package filter
@@ -25,7 +24,7 @@ var (
 	_ core.SampleReader    = &EmptySamplesReader{}
 )
 
-// Filter empty samples from reader
+// Filter empty Samples from reader. If a Sample has only __key__ entry, it is treated as an empty.
 func EmptySamples(reader core.SampleReader) core.SampleReader {
 	return &EmptySamplesReader{Reader: reader}
 }
@@ -35,13 +34,13 @@ func (f *EmptySamplesReader) Read() (*core.Sample, error) {
 	if err != nil {
 		return nil, err
 	}
-	if len(sample.Entries) > 0 {
+	if !isSampleEmpty(sample) {
 		return sample, nil
 	}
 	return f.Read()
 }
 
-// Filter empty examples from reader
+// Filter empty TFExamples from reader. If a TFExample has only __key__ entry, it is treated as an empty.
 func EmptyExamples(reader core.TFExampleReader) core.TFExampleReader {
 	return &EmptyTFExamplesReader{Reader: reader}
 }
@@ -51,8 +50,30 @@ func (f *EmptyTFExamplesReader) Read() (*core.TFExample, error) {
 	if err != nil {
 		return nil, err
 	}
-	if len(ex.GetFeatures().Feature) > 0 {
+	if !isTFExampleEmpty(ex) {
 		return ex, nil
 	}
 	return f.Read()
+}
+
+func isSampleEmpty(sample *core.Sample) bool {
+	if len(sample.Entries) == 0 {
+		return true
+	}
+	if len(sample.Entries) == 1 && sample.Entries[core.KeyEntry] != nil {
+		return true
+	}
+
+	return false
+}
+
+func isTFExampleEmpty(ex *core.TFExample) bool {
+	if len(ex.GetFeatures().Feature) == 0 {
+		return true
+	}
+	if len(ex.GetFeatures().Feature) == 1 && ex.GetFeatures().Feature[core.KeyEntry] != nil {
+		return true
+	}
+
+	return false
 }

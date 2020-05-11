@@ -1,7 +1,8 @@
 # The `go-tfdata` library
 
 The `go-tfdata` is a Go library helping to work with tar/tgz archives and files in 
-[TFRecord and tf.Example formats](https://www.tensorflow.org/tutorials/load_data/tfrecord).
+[TFRecord and tf.Example formats](https://www.tensorflow.org/tutorials/load_data/tfrecord), including converting
+TAR files to TFRecord files.
 It provides interfaces and their default implementations on each intermediate step between tar and TFRecord format.
 Additionally it includes easy to use utilities to convert and augment data in intermediate steps.  
 
@@ -37,7 +38,8 @@ maps sample to TFExample accordingly to types.
 #### Transformations
 
 - `RenameTransformation(dest string, src []string)` - renames `src` fields into `dest` field
-- TBA...
+- `SampleF(f func(*core.Sample) *core.Sample)` - transforms Sample based on specified function `f`
+- `TFExampleF(f func(*core.TFExample) *core.TFExample)` - transforms TFExample based on specified function `f`
 
 ### Examples
 

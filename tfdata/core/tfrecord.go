@@ -1,4 +1,4 @@
-//// Package tfdata provides interface to interact with TFRecord files and TExamples
+// Package tfdata provides interface to interact with TFRecord files and TExamples
 //
 // Copyright (c) 2020, NVIDIA CORPORATION. All rights reserved.
 //

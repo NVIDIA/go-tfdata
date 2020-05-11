@@ -1,4 +1,4 @@
-//// Package pipeline provides abstraction of pipeline and stages
+// Package pipeline provides abstraction of pipeline and stages. It is basic tool to convert TAR/TAR GZ file into TFRecord file.
 //
 // Copyright (c) 2020, NVIDIA CORPORATION. All rights reserved.
 //
@@ -10,75 +10,69 @@ import (
 	"github.com/NVIDIA/go-tfdata/tfdata/archive"
 	"github.com/NVIDIA/go-tfdata/tfdata/core"
 	"github.com/NVIDIA/go-tfdata/tfdata/filter"
-	"github.com/NVIDIA/go-tfdata/tfdata/internal/cmn"
 	"github.com/NVIDIA/go-tfdata/tfdata/transform"
 )
 
 type (
-	TarStage            func() core.SampleReader
-	SamplesStage        func(core.SampleReader) core.SampleReader
-	Sample2ExampleStage func(core.SampleReader) core.TFExampleReader
-	TFExamplesStage     func(core.TFExampleReader) core.TFExampleReader
-	TFRecordStage       func(core.TFExampleReader)
+	// TarStage produces core.SampleReader
+	TarStage func() (core.SampleReader, error)
+	// SamplesStage makes transformation on core.Sample: consumes core.SampleReader and produces core.SampleReader
+	SamplesStage func(core.SampleReader) core.SampleReader
+	// Samples2ExampleStage transforms core.Sample to core.TFExample: consumes core.SampleReader and produces core.TFExampleReader
+	Sample2TFExampleStage func(core.SampleReader) core.TFExampleReader
+	// SamplesStage makes transformation on core.TFExample: consumes core.TFExampleReader and produces core.TFExampleReader
+	TFExamplesStage func(core.TFExampleReader) core.TFExampleReader
+	// TFRecordStage consumes core.TFExampleReader
+	TFRecordStage func(core.TFExampleReader) error
 
+	// DefaultPipeline represents TAR file to TFRecord file conversion with an intermediate
+	// transformations on core.Sample and core.TFExample
 	DefaultPipeline struct {
 		tarStage            TarStage
 		samplesStage        SamplesStage // optional stage - consumes the same type as produces
-		sample2ExampleStage Sample2ExampleStage
+		sample2ExampleStage Sample2TFExampleStage
 		tfExamplesStage     TFExamplesStage // optional stage - consumes the same type as produces
 		tfRecordStage       TFRecordStage
 	}
 )
 
+// TransformTFExamples adds transforming core.Samples according to tfs as pipeline's SamplesStage.
+// Transformations will be executed in order of appearance in tfs
 func (p *DefaultPipeline) TransformSamples(tfs ...transform.SampleTransformation) *DefaultPipeline {
-	cmn.Assert(p.samplesStage == nil)
 	return p.WithSamplesStage(func(r core.SampleReader) core.SampleReader {
 		return transform.NewSampleTransformer(r, tfs...)
 	})
 }
 
+// TransformTFExamples adds transforming core.TFExamples according to tfs as pipeline's TFExamplesStage.
+// Transformations will be executed in order of appearance in tfs
 func (p *DefaultPipeline) TransformTFExamples(tfs ...transform.TFExampleTransformation) *DefaultPipeline {
-	cmn.Assert(p.tfExamplesStage == nil)
 	return p.WithTFExamplesStage(func(r core.TFExampleReader) core.TFExampleReader {
 		return transform.NewTFExampleTransformer(r, tfs...)
 	})
 }
 
+// FilterEmptySamples adds filtering of empty core.Samples as pipeline's SamplesStage.
 func (p *DefaultPipeline) FilterEmptySamples() *DefaultPipeline {
-	samplesStage := p.samplesStage
-	return p.WithSamplesStage(func(reader core.SampleReader) core.SampleReader {
-		if samplesStage != nil {
-			reader = samplesStage(reader)
-		}
-		return filter.EmptySamples(reader)
-	})
+	return p.WithSamplesStage(filter.EmptySamples)
 }
 
-func (p *DefaultPipeline) FilterEmptyExamples() *DefaultPipeline {
-	tfExamplesStage := p.tfExamplesStage
-	return p.WithTFExamplesStage(func(reader core.TFExampleReader) core.TFExampleReader {
-		if tfExamplesStage != nil {
-			reader = tfExamplesStage(reader)
-		}
-		return filter.EmptyExamples(reader)
-	})
+// FilterEmptyTFExamples adds filtering of empty core.TFExamples as pipeline's TFExamplesStage.
+func (p *DefaultPipeline) FilterEmptyTFExamples() *DefaultPipeline {
+	return p.WithTFExamplesStage(filter.EmptyExamples)
 }
 
+// FromTar adds reading core.Samples from input as input was a TAR file.
 func (p *DefaultPipeline) FromTar(input io.Reader) *DefaultPipeline {
-	cmn.Assert(p.tarStage == nil)
-	return p.WithTarStage(func() core.SampleReader {
-		sampleReader, err := archive.NewTarReader(input)
-		cmn.Assert(err == nil)
-		return sampleReader
+	return p.WithTarStage(func() (core.SampleReader, error) {
+		return archive.NewTarReader(input)
 	})
 }
 
+// FromTarGz adds reading core.Samples from input as input was a TAR GZ file.
 func (p *DefaultPipeline) FromTarGz(input io.Reader) *DefaultPipeline {
-	cmn.Assert(p.tarStage == nil)
-	return p.WithTarStage(func() core.SampleReader {
-		sampleReader, err := archive.NewTarGzReader(input)
-		cmn.Assert(err == nil)
-		return sampleReader
+	return p.WithTarStage(func() (core.SampleReader, error) {
+		return archive.NewTarGzReader(input)
 	})
 }
 
@@ -87,16 +81,12 @@ func (p *DefaultPipeline) FromTarGz(input io.Reader) *DefaultPipeline {
 // asynchronously. It assumes that all underlying Readers are async-safe.
 // All default Readers, Transformations, Selections are async-safe.
 func (p *DefaultPipeline) ToTFRecord(w io.Writer, numWorkers ...int) *DefaultPipeline {
-	cmn.Assert(p.tfRecordStage == nil)
-	return p.WithTFRecordStage(func(reader core.TFExampleReader) {
+	return p.WithTFRecordStage(func(reader core.TFExampleReader) error {
 		writer := core.NewTFRecordWriter(w)
-		var err error
 		if len(numWorkers) > 0 {
-			err = writer.WriteMessagesAsync(reader, numWorkers[0])
-		} else {
-			err = writer.WriteMessages(reader)
+			return writer.WriteMessagesAsync(reader, numWorkers[0])
 		}
-		cmn.Assert(err == nil)
+		return writer.WriteMessages(reader)
 	})
 }
 
@@ -106,25 +96,31 @@ func (p *DefaultPipeline) ToTFRecord(w io.Writer, numWorkers ...int) *DefaultPip
 // If m is not provided, each entry from value will be converted to BytesList
 // If m provided, but sample has key which is not present in TypesMap, value will be converted to BytesList
 func (p *DefaultPipeline) SampleToTFExample(m ...core.TypesMap) *DefaultPipeline {
-	cmn.Assert(p.sample2ExampleStage == nil)
-	return p.WithSample2ExampleStage(func(sr core.SampleReader) core.TFExampleReader {
+	return p.WithSample2TFExampleStage(func(sr core.SampleReader) core.TFExampleReader {
 		return transform.SamplesToTFExample(sr, m...)
 	})
 }
 
-func (p *DefaultPipeline) Do() {
+// Do executes pipeline based on specified stages.
+func (p *DefaultPipeline) Do() error {
 	// prepare pipeline
-	sReader := p.tarStage()
+	sReader, err := p.tarStage()
+	if err != nil {
+		return err
+	}
+
 	if p.samplesStage != nil {
 		sReader = p.samplesStage(sReader)
 	}
+
 	exReader := p.sample2ExampleStage(sReader)
+
 	if p.tfExamplesStage != nil {
 		exReader = p.tfExamplesStage(exReader)
 	}
 
 	// The whole pipeline is ready, start doing the job
-	p.tfRecordStage(exReader)
+	return p.tfRecordStage(exReader)
 }
 
 // default setters
@@ -133,26 +129,47 @@ func NewPipeline() *DefaultPipeline {
 	return &DefaultPipeline{}
 }
 
+// WithTarStage defines TarStage of a pipeline. Overrides previous value.
 func (p *DefaultPipeline) WithTarStage(stage TarStage) *DefaultPipeline {
 	p.tarStage = stage
 	return p
 }
 
+// WithSamplesStage defines SamplesStage of a pipeline. If SamplesStage has been already set, the resulting
+// SamplesStage will chain together transformations in order of setting.
 func (p *DefaultPipeline) WithSamplesStage(stage SamplesStage) *DefaultPipeline {
-	p.samplesStage = stage
+	if p.samplesStage != nil {
+		prevStage := p.samplesStage
+		p.samplesStage = func(reader core.SampleReader) core.SampleReader {
+			return stage(prevStage(reader))
+		}
+	} else {
+		p.samplesStage = stage
+	}
 	return p
 }
 
-func (p *DefaultPipeline) WithSample2ExampleStage(stage Sample2ExampleStage) *DefaultPipeline {
+// WithSample2TFExampleStage defines Sample2TFExampleStage of a pipeline. Overrides previous value.
+func (p *DefaultPipeline) WithSample2TFExampleStage(stage Sample2TFExampleStage) *DefaultPipeline {
 	p.sample2ExampleStage = stage
 	return p
 }
 
+// WithTFExamplesStage defines TFExamplesStage of a pipeline. If TFExamplesStage has been already set, the resulting
+// TFExamplesStage will chain together transformations in order of setting.
 func (p *DefaultPipeline) WithTFExamplesStage(stage TFExamplesStage) *DefaultPipeline {
-	p.tfExamplesStage = stage
+	if p.tfExamplesStage != nil {
+		prevStage := p.tfExamplesStage
+		p.tfExamplesStage = func(reader core.TFExampleReader) core.TFExampleReader {
+			return stage(prevStage(reader))
+		}
+	} else {
+		p.tfExamplesStage = stage
+	}
 	return p
 }
 
+// WithTFRecordStage defines TFRecordStage of a pipeline. Overrides previous value.
 func (p *DefaultPipeline) WithTFRecordStage(stage TFRecordStage) *DefaultPipeline {
 	p.tfRecordStage = stage
 	return p

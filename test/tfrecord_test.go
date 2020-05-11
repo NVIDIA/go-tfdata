@@ -1,8 +1,7 @@
-//// Package test contains tests of tfdata package
+// Package test contains tests of tfdata package
 //
 // Copyright (c) 2020, NVIDIA CORPORATION. All rights reserved.
 //
-
 package test
 
 import (

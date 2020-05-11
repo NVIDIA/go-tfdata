@@ -1,4 +1,4 @@
-//// Package selection provides implementation of tfdata.Transformation
+// Package selection provides implementation of tfdata.Transformation
 //
 // Copyright (c) 2020, NVIDIA CORPORATION. All rights reserved.
 //

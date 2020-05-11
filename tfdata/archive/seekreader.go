@@ -1,8 +1,7 @@
-//// Package archive contains tools for transition between TAR files and SampleReader
+// Package archive contains tools for transition between TAR files and SampleReader
 //
 // Copyright (c) 2020, NVIDIA CORPORATION. All rights reserved.
 //
-
 package archive
 
 import (

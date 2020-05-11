@@ -9,3 +9,9 @@ func Assert(cond bool) {
 		panic("assertion failed")
 	}
 }
+
+func AssertNoError(err error) {
+	if err != nil {
+		panic("assertion failed with error %v" + err.Error())
+	}
+}
