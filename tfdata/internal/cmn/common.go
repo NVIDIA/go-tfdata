@@ -4,8 +4,12 @@
 package cmn
 
 func Assert(cond bool) {
+	AssertMsg(cond, "assertion failed")
+}
+
+func AssertMsg(cond bool, msg string) {
 	if !cond {
-		panic("assertion failed")
+		panic(msg)
 	}
 }
 

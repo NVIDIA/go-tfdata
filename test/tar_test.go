@@ -3,7 +3,9 @@
 package test
 
 import (
+	"bytes"
 	"io"
+	"io/ioutil"
 	"os"
 	"testing"
 
@@ -86,4 +88,34 @@ func TestTarGzReader(t *testing.T) {
 
 	tassert.Errorf(t, err == io.EOF, "expected io.EOF, got %v", err)
 	tassert.Errorf(t, i == 10, "expected tar to have 10 samples, got %d instead", i)
+}
+
+func TestInvalidGreedyTarError(t *testing.T) {
+	b := bytes.NewBuffer(nil)
+	b.Write([]byte("invalid TAR"))
+
+	r, err := archive.NewTarReader(b)
+	tassert.Fatalf(t, r != nil, "unexpected nil from TarReader")
+	// The error will come on the first Read() request, as TAR is processed asynchronously.
+	tassert.Fatalf(t, err == nil, "expected calling TarReader to be successful")
+	_, ok := r.(*archive.TarGreedyReader)
+	// Make sure that we test
+	tassert.Fatalf(t, ok, "expected bytes.Buffer to not implement io.Seeker and be used as TarGreedyReader")
+
+	_, err = r.Read()
+	tassert.Fatalf(t, err != nil && err != io.EOF, "expected TAR read failure, got %v", err)
+}
+
+func TestInvalidSeekTarError(t *testing.T) {
+	f, err := ioutil.TempFile("", "seek.tar")
+	tassert.CheckFatal(t, err)
+	f.Write([]byte("invalid TAR"))
+
+	r, err := archive.NewTarReader(f)
+	tassert.CheckFatal(t, err)
+	_, ok := r.(*archive.TarSeekReader)
+	tassert.Fatalf(t, ok, "expected os.File to be used as TarSeekReader")
+
+	_, err = r.Read()
+	tassert.Fatalf(t, err != nil && err != io.EOF, "expected TAR read failure, got %v", err)
 }

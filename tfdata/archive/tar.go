@@ -33,7 +33,12 @@ type (
 	TarGreedyReader struct {
 		rm RecordsManager
 		r  *tar.Reader
-		ch chan core.Sample
+		ch chan *sampleResult
+	}
+
+	sampleResult struct {
+		s   core.Sample
+		err error
 	}
 )
 

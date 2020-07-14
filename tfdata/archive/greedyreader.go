@@ -10,18 +10,21 @@ import (
 	"io"
 
 	"github.com/NVIDIA/go-tfdata/tfdata/core"
+	"github.com/NVIDIA/go-tfdata/tfdata/internal/cmn"
 )
 
 func newTarGreedyReader(reader io.Reader) *TarGreedyReader {
 	tarReader := &TarGreedyReader{
 		rm: NewRecordsManager(),
 		r:  tar.NewReader(reader),
-		ch: make(chan core.Sample, 100),
+		ch: make(chan *sampleResult, 100),
 	}
 
 	go func() {
 		defer close(tarReader.ch)
 		if err := tarReader.prepareRecords(); err != nil {
+			// prepareRecords() error will be reported on the first Read()
+			tarReader.ch <- &sampleResult{s: nil, err: err}
 			return
 		}
 
@@ -31,7 +34,7 @@ func newTarGreedyReader(reader io.Reader) *TarGreedyReader {
 				sample[k] = v
 			}
 			sample[core.KeyEntry] = r.Name
-			tarReader.ch <- sample
+			tarReader.ch <- &sampleResult{sample, nil}
 		}
 	}()
 
@@ -85,8 +88,12 @@ func (t *TarGreedyReader) prepareRecords() error {
 
 func (t *TarGreedyReader) Read() (core.Sample, error) {
 	sample, ok := <-t.ch
+
 	if !ok {
-		return sample, io.EOF
+		cmn.AssertMsg(sample == nil, "expected nil sample on empty and closed chanel")
+		return nil, io.EOF
 	}
-	return sample, nil
+
+	cmn.AssertMsg(sample != nil, "expected non-nil sample when chanel was not empty")
+	return sample.s, sample.err // nolint staticcheck // nil-check in the assertion above
 }
